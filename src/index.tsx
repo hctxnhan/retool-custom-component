@@ -17,7 +17,7 @@ export const NhanTestComponent: FC = () => {
 
   return (
     <div>
-      <WrapperComponent cssVariables={theme}>
+      <WrapperComponent cssVariables={theme as Record<string, string>}>
         <Button className="w-full h-full" variant={'default'}>
           Hello {name}
         </Button>
@@ -31,48 +31,97 @@ export const AiChatComponent: FC = () => {
     name: 'theme'
   })
 
+  const [placeholder] = Retool.useStateString({
+    name: 'placeholder',
+    initialValue: 'Type your message...'
+  })
+
   const [lastMessage, setLastMessage] = Retool.useStateString({
     name: 'lastMessage',
     inspector: 'hidden'
   })
 
-  const [messageHistory, setMessageHistory] = Retool.useStateObject({
+  const [messageHistory, setMessageHistory] = Retool.useStateArray({
     name: 'messageHistory',
     inspector: 'hidden'
   })
 
+  const [lastResponse, _setLastResponse] = Retool.useStateString({
+    name: 'lastResponse',
+  })
+
+  const [avatarSrc] = Retool.useStateString({
+    name: 'avatarSrc',
+    initialValue: "{{ current_user.profilePhotoUrl }}",
+    inspector: 'hidden'
+  })
+
+  const onInit = Retool.useEventCallback({
+    name: 'onInit'
+  })
+
+  const onMessage = Retool.useEventCallback({
+    name: 'onMessage'
+  })
+
+  const onResponse = Retool.useEventCallback({
+    name: 'onResponse'
+  })
+
+    React.useEffect(() => {
+      const handleMessage = async () => {
+        if (lastMessage) {
+          await onMessage()
+        }
+      }
+      handleMessage()
+    }, [lastMessage])
+
+  React.useEffect(() => {
+    if (lastResponse) {
+      onResponse()
+    }
+  }, [lastResponse, onResponse])
+
+  React.useEffect(() => {
+    onInit()
+  }, [onInit])
+
   return (
     <div>
-      <WrapperComponent cssVariables={theme}>
+      <WrapperComponent cssVariables={theme as Record<string, string>}>
         <ExpandableChatDemo
-          lastMessage={lastMessage}
+          _lastMessage={lastMessage}
           setLastMessage={setLastMessage}
-          messageHistory={messageHistory}
+          _messageHistory={messageHistory as Array<{ role: "user" | "assistant"; content: string }>}
           setMessageHistory={setMessageHistory}
-        />
+          placeholder={placeholder || 'Type your message...'}
+          lastResponse={lastResponse}
+          avatarSrc={avatarSrc}
+/>
       </WrapperComponent>
     </div>
   )
 }
 
 export const AiEditorComponent: FC = () => {
-  const [content, setContent] = React.useState('')
+  const [content, _setContent] = React.useState('')
 
   const [theme, _setTheme] = Retool.useStateObject({
     name: 'theme'
   })
 
-  const onProcess = Retool.useEventCallback({
-    name: 'onProcess'
-  })
-
-  const [processData, setProcessData] = Retool.useStateObject({
+  const [_processData, setProcessData] = Retool.useStateObject({
     name: 'processData',
     inspector: 'hidden'
   })
 
-  const [aiResult, setAIResult] = Retool.useStateString({
+  const [aiResult, _setAIResult] = Retool.useStateString({
     name: 'aiResult'
+  })
+
+  const onProcess = Retool.useEventCallback({
+    name: 'onProcess'
   })
 
   const handleAIProcess = (data: {
@@ -85,7 +134,7 @@ export const AiEditorComponent: FC = () => {
   }
 
   return (
-    <WrapperComponent cssVariables={theme}>
+    <WrapperComponent cssVariables={theme as Record<string, string>}>
       <AiEditor
         content={content}
         onProcess={handleAIProcess}
