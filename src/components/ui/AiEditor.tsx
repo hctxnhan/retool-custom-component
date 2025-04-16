@@ -7,7 +7,6 @@ import {
   NavigationMenuContent,
   NavigationMenuItem
 } from './navigation-menu'
-import { ExpandableChatDemo } from './demo'
 
 interface AiEditorProps {
   content: string
@@ -17,6 +16,11 @@ interface AiEditorProps {
     promptContent: string
   }) => void
   aiResult?: string
+  onTypeChange?: (type: string) => void
+  lastMessage?: string
+  setLastMessage?: (message: string) => void
+  messageHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
+  setMessageHistory?: (history: Array<{ role: 'user' | 'assistant'; content: string }>) => void
 }
 
 const configOptions: Record<string, string[]> = {
@@ -56,7 +60,8 @@ const configOptions: Record<string, string[]> = {
 const AiEditor: React.FC<AiEditorProps> = ({
   content,
   onProcess,
-  aiResult
+  aiResult,
+  onTypeChange,
 }) => {
   const editorRef = useRef<HTMLDivElement>(null)
   const quillRef = useRef<Quill | null>(null)
@@ -70,6 +75,9 @@ const AiEditor: React.FC<AiEditorProps> = ({
   const [showAIResult, setShowAIResult] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
+  // const [lastMessage, setLastMessage] = useState('')
+  // const [messageHistory, setMessageHistory] = useState<Array<{role: 'user' | 'assistant', content: string}>>([])
+
   useEffect(() => {
     if (editorRef.current && !quillRef.current) {
       quillRef.current = new Quill(editorRef.current, { theme: 'snow' })
@@ -81,8 +89,16 @@ const AiEditor: React.FC<AiEditorProps> = ({
           setSelectedText(selected.trim())
           setSelectedIndex(range.index)
           setShowPromptOptions(true)
-        } else {
+        } else if (selectedType === 'askAi') {
           setShowPromptOptions(false)
+          setSelectedText('')
+          setSelectedPrompt('')
+          setSelectedType('')
+        } else if (range && range.length === 0) {
+          setShowPromptOptions(false)
+          setSelectedPrompt('')
+          setSelectedText('')
+          setSelectedType('')
         }
       })
     }
@@ -99,6 +115,9 @@ const AiEditor: React.FC<AiEditorProps> = ({
 
   const handleOptionSelect = (type: string) => {
     setSelectedType(type)
+    if(onTypeChange) {
+      onTypeChange(type)
+    }
   }
 
   const handlePromptSelect = (prompt: string) => {
@@ -167,33 +186,35 @@ const AiEditor: React.FC<AiEditorProps> = ({
                       onClick={() => handleOptionSelect(type)}
                     >
                       {type}
+                      {selectedType === type && type !== 'askAi' && (
+                        <NavigationMenuContent className="bg-white p-4 border shadow-md rounded-lg mt-2 w-max">
+                          <div className="flex flex-wrap gap-2">
+                            {configOptions[type].map((prompt) => {
+                              const isActive = selectedPrompt === prompt
+                              return (
+                                <Button
+                                  key={prompt}
+                                  variant="secondary"
+                                  size="sm"
+                                  className={`rounded-full px-6 py-2 ${isActive ? 'bg-blue-500 text-white' : ''}`}
+                                  onClick={() => handlePromptSelect(prompt)}
+                                  disabled={isLoading && isActive}
+                                >
+                                  {isLoading && isActive
+                                    ? `${prompt} (Thinking...)`
+                                    : prompt}
+                                </Button>
+                              )
+                            })}
+                          </div>
+                        </NavigationMenuContent>
+                      )}
+
+                      {selectedType === 'askAi' && (
+                        <NavigationMenuContent>
+                        </NavigationMenuContent>
+                      )}
                     </Button>
-
-                    {selectedType === type && type !== 'askAi' && (
-                      <NavigationMenuContent className="bg-white p-4 border shadow-md rounded-lg mt-2 w-max">
-                        <div className="flex flex-wrap gap-2">
-                          {configOptions[type].map((prompt) => {
-                            const isActive = selectedPrompt === prompt
-                            return (
-                              <Button
-                                key={prompt}
-                                variant="secondary"
-                                size="sm"
-                                className={`rounded-full px-6 py-2 ${isActive ? 'bg-blue-500 text-white' : ''}`}
-                                onClick={() => handlePromptSelect(prompt)}
-                                disabled={isLoading && isActive}
-                              >
-                                {isLoading && isActive
-                                  ? `${prompt} (Thinking...)`
-                                  : prompt}
-                              </Button>
-                            )
-                          })}
-                        </div>
-                      </NavigationMenuContent>
-                    )}
-
-                    {selectedType === 'askAi' && <ExpandableChatDemo />}
                   </NavigationMenuItem>
                 ))}
               </div>
@@ -245,11 +266,6 @@ const AiEditor: React.FC<AiEditorProps> = ({
               </div>
             </div>
           )}
-          {selectedType === 'askAi' && (
-      <div className="pt-4">
-        <ExpandableChatDemo />
-      </div>
-    )}
         </div>
       )}
 
