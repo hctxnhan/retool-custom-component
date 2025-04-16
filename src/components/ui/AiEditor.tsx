@@ -9,18 +9,22 @@ import {
 } from './navigation-menu'
 
 interface AiEditorProps {
-  content: string
+  // content: string
   onProcess: (data: {
     selectedContent: string
     selectedIndex: number
     promptContent: string
   }) => void
+  content?: string
   aiResult?: string
   onTypeChange?: (type: string) => void
   lastMessage?: string
   setLastMessage?: (message: string) => void
   messageHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
-  setMessageHistory?: (history: Array<{ role: 'user' | 'assistant'; content: string }>) => void
+  setMessageHistory?: (
+    history: Array<{ role: 'user' | 'assistant'; content: string }>
+  ) => void
+  onContentChange?: (content: string) => void
 }
 
 const configOptions: Record<string, string[]> = {
@@ -62,6 +66,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
   onProcess,
   aiResult,
   onTypeChange,
+  onContentChange
 }) => {
   const editorRef = useRef<HTMLDivElement>(null)
   const quillRef = useRef<Quill | null>(null)
@@ -81,7 +86,14 @@ const AiEditor: React.FC<AiEditorProps> = ({
   useEffect(() => {
     if (editorRef.current && !quillRef.current) {
       quillRef.current = new Quill(editorRef.current, { theme: 'snow' })
-      quillRef.current.setText(content)
+      quillRef.current.setText(content ? content : '')
+
+      quillRef.current.on('text-change', () => {
+        const updatedContent = quillRef.current!.getText()
+        if (onContentChange) {
+          onContentChange(updatedContent)
+        }
+      })
 
       quillRef.current.on('selection-change', (range) => {
         if (range && range.length > 0) {
@@ -115,7 +127,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
 
   const handleOptionSelect = (type: string) => {
     setSelectedType(type)
-    if(onTypeChange) {
+    if (onTypeChange) {
       onTypeChange(type)
     }
   }
@@ -166,7 +178,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
     <div className="space-y-6">
       <div
         ref={editorRef}
-        className="h-64 border border-gray-300 rounded-lg shadow-sm p-2"
+        className="h-64 border border-gray-300 rounded-lg shadow-sm editor-wrapper"
       />
 
       {showPromptOptions && !showAIResult && (
@@ -191,14 +203,19 @@ const AiEditor: React.FC<AiEditorProps> = ({
                           <div className="flex flex-wrap gap-2">
                             {configOptions[type].map((prompt) => {
                               const isActive = selectedPrompt === prompt
+                              const isDisabled = isLoading && isActive
                               return (
                                 <Button
                                   key={prompt}
                                   variant="secondary"
                                   size="sm"
-                                  className={`rounded-full px-6 py-2 ${isActive ? 'bg-blue-500 text-white' : ''}`}
+                                  className={`rounded-full px-6 py-2 ${
+                                    isActive
+                                      ? 'bg-blue-500 text-white'
+                                      : 'hover:bg-blue-100 hover:text-blue-600'
+                                  } transition-colors duration-200 ease-in-out ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                                   onClick={() => handlePromptSelect(prompt)}
-                                  disabled={isLoading && isActive}
+                                  disabled={isDisabled}
                                 >
                                   {isLoading && isActive
                                     ? `${prompt} (Thinking...)`
@@ -211,8 +228,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
                       )}
 
                       {selectedType === 'askAi' && (
-                        <NavigationMenuContent>
-                        </NavigationMenuContent>
+                        <NavigationMenuContent></NavigationMenuContent>
                       )}
                     </Button>
                   </NavigationMenuItem>

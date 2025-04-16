@@ -91,12 +91,17 @@ export const AiChatComponent: FC = () => {
     <div>
       <WrapperComponent cssVariables={theme as Record<string, string>}>
         <ExpandableChatDemo
-          _lastMessage={lastMessage}
+          lastMessage={lastMessage}
           setLastMessage={setLastMessage}
           _messageHistory={messageHistory as Array<{ role: "user" | "assistant"; content: string }>}
           setMessageHistory={setMessageHistory}
           placeholder={placeholder || 'Type your message...'}
-          lastResponse={lastResponse}
+          lastResponse={
+            (() => {
+              console.log('lastResponse', lastResponse)
+              return lastResponse
+            })()
+          }          
           avatarSrc={avatarSrc}
 />
       </WrapperComponent>
@@ -105,7 +110,13 @@ export const AiChatComponent: FC = () => {
 }
 
 export const AiEditorComponent: FC = () => {
-  const [content, _setContent] = React.useState('')
+  // const [content, _setContent] = React.useState('')
+
+  const [content, setContent] = Retool.useStateString({
+    name: 'content',
+    initialValue: '',
+    inspector: 'hidden'
+  })
 
   const [theme, _setTheme] = Retool.useStateObject({
     name: 'theme'
@@ -130,6 +141,7 @@ export const AiEditorComponent: FC = () => {
     promptContent: string
   }) => {
     setProcessData(data)
+    setContent(data.selectedContent)
     onProcess()
   }
 
@@ -194,10 +206,22 @@ export const AiEditorComponent: FC = () => {
     onInit()
   }, [onInit])
 
+  React.useEffect(() => {
+    if (selectedType === 'askAi' && content) {
+      setLastMessage(lastMessage + content)
+    }
+  }, [selectedType, content])
+  
+
+
   return (
     <WrapperComponent cssVariables={theme as Record<string, string>}>
       <AiEditor
         content={content}
+        onContentChange={(updated) => {
+          console.log('Editor content:', updated)
+          setContent(updated)
+        }}        
         onProcess={handleAIProcess}
         aiResult={aiResult}
         onTypeChange={setSelectedType}
@@ -210,13 +234,14 @@ export const AiEditorComponent: FC = () => {
       {selectedType === 'askAi' && (
       <div style={{ display: selectedType === 'askAi' ? 'block' : 'none' }}>
       <ExpandableChatDemo
-        _lastMessage={lastMessage}
+      lastMessage={lastMessage}
         setLastMessage={setLastMessage}
         _messageHistory={messageHistory as Array<{ role: 'user' | 'assistant'; content: string }>}
         setMessageHistory={setMessageHistory}
         placeholder={placeholder || 'Type your message...'}
         lastResponse={lastResponse}
         avatarSrc={avatarSrc}
+        content={content}        
       />
     </div>    
     )}

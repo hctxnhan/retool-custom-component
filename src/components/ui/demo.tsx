@@ -18,48 +18,60 @@ import {
 import { ChatMessageList } from '@/components/ui/chat-message-list'
 
 type Message = {
-  id: number;
-  content: string;
-  role: "user" | "assistant";
+  id: number
+  content: string
+  role: 'user' | 'assistant'
 }
 
 export const ExpandableChatDemo = ({
-  _lastMessage,
+  lastMessage,
   setLastMessage,
   _messageHistory,
   setMessageHistory,
-  placeholder = "Type your message...",
+  placeholder = 'Type your message...',
   lastResponse,
-  avatarSrc
+  avatarSrc,
+  content
 }: {
-  _lastMessage: string
+  lastMessage: string
   setLastMessage: (message: string) => void
-  _messageHistory: Array<{ role: "user" | "assistant"; content: string }>
-  setMessageHistory: (history: Array<{ role: "user" | "assistant"; content: string }>) => void
+  _messageHistory: Array<{ role: 'user' | 'assistant'; content: string }>
+  setMessageHistory: (
+    history: Array<{ role: 'user' | 'assistant'; content: string }>
+  ) => void
   placeholder?: string
   lastResponse?: string
   avatarSrc?: string
-}) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      content: `Hello! I'm Retool AI. How can I help you today?`,
-      role: "assistant"
-    }
-  ])
+  content?: string
+}) => { const [messages, setMessages] = useState<Message[]>([])
 
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(null)
+  const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(
+    null
+  )
+  const [isFirstMessage, setIsFirstMessage] = useState(true)
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!input.trim()) return
-    
+
+    // const finalMessage =
+    //   isFirstMessage && content
+    //     ? `${content.trim()}\n\n${input.trim()}`
+    //     : input.trim()
+
+    // if (isFirstMessage) {
+    //   setIsFirstMessage(false)
+    // }
+    // console.log('Input message:', input)
+    // console.log('Selected content:', content)
+    // console.log('Final message:', finalMessage)
+
     const newUserMessage: Message = {
       id: Date.now(),
       content: input,
-      role: "user"
+      role: 'user'
     }
 
     // Update local messages state
@@ -71,67 +83,67 @@ export const ExpandableChatDemo = ({
     setLastMessage(input)
     setPendingUserMessage(input)
     const currentHistory = Array.isArray(_messageHistory) ? _messageHistory : []
-    const updatedHistory: Array<{ role: "user" | "assistant"; content: string }> = [
-      ...currentHistory,
-      { role: "user", content: input }
-    ]
+    const updatedHistory: Array<{
+      role: 'user' | 'assistant'
+      content: string
+    }> = [...currentHistory, { role: 'user', content: input }]
     setMessageHistory(updatedHistory)
   }
 
   // Add effect to handle new AI responses
   React.useEffect(() => {
-    if (lastResponse && pendingUserMessage) {
+    if (lastResponse) {
       const aiMessage: Message = {
         id: Date.now(),
         content: lastResponse,
-        role: "assistant"
+        role: 'assistant'
       }
-      console.log('AI response:', lastResponse)
-      console.log('Pending user message:', pendingUserMessage)
-      console.log('Updated messages:', [...messages, aiMessage])
-
+  
       setMessages((prev) => [...prev, aiMessage])
       setIsLoading(false)
-
-      // Update messageHistory with AI response
-      const currentHistory = Array.isArray(_messageHistory) ? _messageHistory : []
+  
+      const currentHistory = Array.isArray(_messageHistory)
+        ? _messageHistory
+        : []
       setMessageHistory([
         ...currentHistory,
-        { role: "assistant", content: lastResponse }
+        { role: 'assistant', content: lastResponse }
       ])
-      setPendingUserMessage(null)
     }
-  }, [lastResponse, isLoading, _messageHistory, setMessageHistory])
+  }, [lastResponse])
+  
 
-  const handleAttachFile = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.multiple = true;
-    input.accept = '*/*';
-    input.onchange = (e) => {
-      const files = (e.target as HTMLInputElement).files;
-      if (files && files.length > 0) {
-        const fileNames = Array.from(files).map(file => file.name);
-        const fileMessage = `Attached files: ${fileNames.join(', ')}`;
-        setInput(prev => prev + (prev ? '\n' : '') + fileMessage);
-      }
-    };
-    input.click();
-  }
+  // const handleAttachFile = () => {
+  //   const input = document.createElement('input')
+  //   input.type = 'file'
+  //   input.multiple = true
+  //   input.accept = '*/*'
+  //   input.onchange = (e) => {
+  //     const files = (e.target as HTMLInputElement).files
+  //     if (files && files.length > 0) {
+  //       const fileNames = Array.from(files).map((file) => file.name)
+  //       const fileMessage = `Attached files: ${fileNames.join(', ')}`
+  //       setInput((prev) => prev + (prev ? '\n' : '') + fileMessage)
+  //     }
+  //   }
+  //   input.click()
+  // }
 
-  const handleMicrophoneClick = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Here you would typically start recording
-      // For now, we'll just show a message that mic access was granted
-      setInput(prev => prev + (prev ? '\n' : '') + '🎤 Voice input enabled');
-      // Clean up the stream
-      stream.getTracks().forEach(track => track.stop());
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-      setInput(prev => prev + (prev ? '\n' : '') + '❌ Could not access microphone');
-    }
-  }
+  // const handleMicrophoneClick = async () => {
+  //   try {
+  //     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+  //     // Here you would typically start recording
+  //     // For now, we'll just show a message that mic access was granted
+  //     setInput((prev) => prev + (prev ? '\n' : '') + '🎤 Voice input enabled')
+  //     // Clean up the stream
+  //     stream.getTracks().forEach((track) => track.stop())
+  //   } catch (error) {
+  //     console.error('Error accessing microphone:', error)
+  //     setInput(
+  //       (prev) => prev + (prev ? '\n' : '') + '❌ Could not access microphone'
+  //     )
+  //   }
+  // }
 
   return (
     <div className="relative w-full h-full">
@@ -157,7 +169,8 @@ export const ExpandableChatDemo = ({
                   className="h-6 w-6 shrink-0 !important"
                   src={
                     message.role === 'user'
-                      ? avatarSrc || 'https://img.icons8.com/?size=100&id=15263&format=png&color=000000'
+                      ? avatarSrc ||
+                        'https://img.icons8.com/?size=100&id=15263&format=png&color=000000'
                       : 'https://img.icons8.com/?size=100&id=KVOZBZtFxHEy&format=png&color=000000'
                   }
                 />
@@ -195,7 +208,7 @@ export const ExpandableChatDemo = ({
             />
 
             <div className="flex items-center p-3 pt-0 justify-between">
-              <div className="flex">
+              {/* <div className="flex">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -213,11 +226,11 @@ export const ExpandableChatDemo = ({
                 >
                   <Mic className="size-4" />
                 </Button>
-              </div>
+              </div> */}
               <Button
                 type="submit"
                 size="sm"
-                className="ml-auto gap-1.5 rounded-full bg-primary text-white hover:bg-primary/90 transition"
+                className="ml-auto gap-1.5 rounded-full bg-primary text-white hover:bg-primary/90 transition px-4 py-2 !important"
               >
                 Send
                 <CornerDownLeft className="size-4" />
