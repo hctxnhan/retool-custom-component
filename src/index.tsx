@@ -5,6 +5,12 @@ import { Retool } from '@tryretool/custom-component-support'
 import { Button } from './components/ui/button'
 import AiEditor from './components/ui/AiEditor'
 import { ExpandableChatDemo } from './components/ui/demo'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from './components/ui/dropdown-menu'
 
 export const NhanTestComponent: FC = () => {
   const [name, _setName] = Retool.useStateString({
@@ -21,6 +27,30 @@ export const NhanTestComponent: FC = () => {
         <Button className="w-full h-full" variant={'default'}>
           Hello {name}
         </Button>
+      </WrapperComponent>
+    </div>
+  )
+}
+
+export const TestComponent: FC = () => {
+  const [theme, _setTheme] = Retool.useStateObject({
+    name: 'theme'
+  })
+
+  return (
+    <div>
+      <WrapperComponent cssVariables={theme as Record<string, string>}>
+        <DropdownMenu>
+          <DropdownMenuTrigger>
+            <button className="bg-blue-500 text-white px-4 py-2 rounded">
+              Open Menu
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>Option 1</DropdownMenuItem>
+            <DropdownMenuItem>Option 2</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </WrapperComponent>
     </div>
   )
@@ -47,12 +77,12 @@ export const AiChatComponent: FC = () => {
   })
 
   const [lastResponse, _setLastResponse] = Retool.useStateString({
-    name: 'lastResponse',
+    name: 'lastResponse'
   })
 
   const [avatarSrc] = Retool.useStateString({
     name: 'avatarSrc',
-    initialValue: "{{ current_user.profilePhotoUrl }}",
+    initialValue: '{{ current_user.profilePhotoUrl }}',
     inspector: 'hidden'
   })
 
@@ -68,14 +98,14 @@ export const AiChatComponent: FC = () => {
     name: 'onResponse'
   })
 
-    React.useEffect(() => {
-      const handleMessage = async () => {
-        if (lastMessage) {
-          await onMessage()
-        }
+  React.useEffect(() => {
+    const handleMessage = async () => {
+      if (lastMessage) {
+        await onMessage()
       }
-      handleMessage()
-    }, [lastMessage])
+    }
+    handleMessage()
+  }, [lastMessage])
 
   React.useEffect(() => {
     if (lastResponse) {
@@ -93,17 +123,20 @@ export const AiChatComponent: FC = () => {
         <ExpandableChatDemo
           lastMessage={lastMessage}
           setLastMessage={setLastMessage}
-          _messageHistory={messageHistory as Array<{ role: "user" | "assistant"; content: string }>}
+          _messageHistory={
+            messageHistory as Array<{
+              role: 'user' | 'assistant'
+              content: string
+            }>
+          }
           setMessageHistory={setMessageHistory}
           placeholder={placeholder || 'Type your message...'}
-          lastResponse={
-            (() => {
-              console.log('lastResponse', lastResponse)
-              return lastResponse
-            })()
-          }          
+          lastResponse={(() => {
+            console.log('lastResponse', lastResponse)
+            return lastResponse
+          })()}
           avatarSrc={avatarSrc}
-/>
+        />
       </WrapperComponent>
     </div>
   )
@@ -162,12 +195,12 @@ export const AiEditorComponent: FC = () => {
   })
 
   const [lastResponse, _setLastResponse] = Retool.useStateString({
-    name: 'lastResponse',
+    name: 'lastResponse'
   })
 
   const [avatarSrc] = Retool.useStateString({
     name: 'avatarSrc',
-    initialValue: "{{ current_user.profilePhotoUrl }}",
+    initialValue: '{{ current_user.profilePhotoUrl }}',
     inspector: 'hidden'
   })
 
@@ -187,14 +220,56 @@ export const AiEditorComponent: FC = () => {
     inspector: 'hidden'
   })
 
-    React.useEffect(() => {
-      const handleMessage = async () => {
-        if (lastMessage) {
-          await onMessage()
-        }
+  React.useEffect(() => {
+    const handleMessage = async () => {
+      if (lastMessage) {
+        await onMessage()
       }
-      handleMessage()
-    }, [lastMessage])
+    }
+    handleMessage()
+  }, [lastMessage])
+
+  // React.useEffect(() => {
+  //   const handleMessage = async () => {
+  //     if (lastMessage) {
+  //       const currentHistory = Array.isArray(messageHistory) ? messageHistory : []
+
+  //       setMessageHistory([
+  //         ...currentHistory,
+  //         {
+  //           role: 'user',
+  //           content: content,
+  //         },
+  //       ])
+
+  //       await onMessage()
+  //     }
+  //   }
+
+  //   handleMessage()
+  // }, [lastMessage])
+
+  React.useEffect(() => {
+    if (selectedType === 'Ask AI' && content) {
+      const currentHistory = Array.isArray(messageHistory) ? messageHistory : []
+
+      setMessageHistory([
+        ...currentHistory,
+        {
+          role: 'user',
+          content: content
+        }
+      ])
+    }
+  }, [selectedType, content])
+
+  React.useEffect(() => {
+    if (selectedType !== 'Ask AI') {
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'))
+      }, 100)
+    }
+  }, [selectedType])
 
   React.useEffect(() => {
     if (lastResponse) {
@@ -206,47 +281,74 @@ export const AiEditorComponent: FC = () => {
     onInit()
   }, [onInit])
 
-  React.useEffect(() => {
-    if (selectedType === 'askAi' && content) {
-      setLastMessage(lastMessage + content)
-    }
-  }, [selectedType, content])
-  
-
-
   return (
     <WrapperComponent cssVariables={theme as Record<string, string>}>
-      <AiEditor
-        content={content}
-        onContentChange={(updated) => {
-          console.log('Editor content:', updated)
-          setContent(updated)
-        }}        
-        onProcess={handleAIProcess}
-        aiResult={aiResult}
-        onTypeChange={setSelectedType}
-        lastMessage={lastMessage}
-        setLastMessage={setLastMessage}
-        messageHistory={messageHistory as Array<{ role: 'user' | 'assistant'; content: string }>}
-        setMessageHistory={setMessageHistory}
-      />
-      {/* chat */}
-      {selectedType === 'askAi' && (
-      <div style={{ display: selectedType === 'askAi' ? 'block' : 'none' }}>
-      <ExpandableChatDemo
-      lastMessage={lastMessage}
-        setLastMessage={setLastMessage}
-        _messageHistory={messageHistory as Array<{ role: 'user' | 'assistant'; content: string }>}
-        setMessageHistory={setMessageHistory}
-        placeholder={placeholder || 'Type your message...'}
-        lastResponse={lastResponse}
-        avatarSrc={avatarSrc}
-        content={content}        
-      />
-    </div>    
-    )}
-  </WrapperComponent>
-)
+      <div style={{ display: 'flex', width: '100%', height: '100%' }}>
+        {/* AiEditor */}
+        <div
+          style={{
+            flex: selectedType === 'Ask AI' ? 1 : '1 1 100%',
+            width: selectedType === 'Ask AI' ? undefined : '100%',
+            height: '100%',
+            boxSizing: 'border-box',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          <AiEditor
+            content={content}
+            onContentChange={(updated) => {
+              console.log('Editor content:', updated)
+              setContent(updated)
+            }}
+            onProcess={handleAIProcess}
+            aiResult={aiResult}
+            onTypeChange={setSelectedType}
+            lastMessage={lastMessage}
+            setLastMessage={setLastMessage}
+            messageHistory={
+              messageHistory as Array<{
+                role: 'user' | 'assistant'
+                content: string
+              }>
+            }
+            setMessageHistory={setMessageHistory}
+          />
+        </div>
+
+        {/* Chat */}
+        {selectedType === 'Ask AI' && (
+          <div
+            style={{
+              flex: 1,
+              height: '100%',
+              marginLeft: '140px',
+              // marginRight: '10px',
+              boxSizing: 'border-box'
+            }}
+          >
+            <ExpandableChatDemo
+              lastMessage={lastMessage}
+              setLastMessage={setLastMessage}
+              _messageHistory={
+                messageHistory as Array<{
+                  role: 'user' | 'assistant'
+                  content: string
+                }>
+              }
+              setMessageHistory={setMessageHistory}
+              placeholder={placeholder || 'Type your message...'}
+              lastResponse={lastResponse}
+              avatarSrc={avatarSrc}
+              content={content}
+              onCloseChat={() => {
+                setSelectedType('')
+              }}
+            />
+          </div>
+        )}
+      </div>
+    </WrapperComponent>
+  )
 }
 
 const WrapperComponent = ({
@@ -259,6 +361,8 @@ const WrapperComponent = ({
   return (
     <div
       style={{
+        width: '100%',
+        height: '100%',
         ...Object.fromEntries(
           Object.entries(cssVariables).map(([k, v]) => [k, v])
         )

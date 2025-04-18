@@ -35,12 +35,16 @@ interface ExpandableChatProps extends React.HTMLAttributes<HTMLDivElement> {
   position?: ChatPosition;
   size?: ChatSize;
   icon?: React.ReactNode;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-const   ExpandableChat: React.FC<ExpandableChatProps> = ({
+const ExpandableChat: React.FC<ExpandableChatProps> = ({
   className,
   size = "md",
   icon: _icon,
+  isOpen = true,
+  onClose,
   children,
   ...props
 }) => {
@@ -56,7 +60,7 @@ const   ExpandableChat: React.FC<ExpandableChatProps> = ({
         className={cn(
           "flex flex-col bg-background border sm:rounded-lg shadow-md overflow-hidden w-full h-full",
           chatConfig.dimensions[size],
-          "pointer-events-auto opacity-100 visible scale-100 translate-y-0",
+          isOpen ? chatConfig.states.open : chatConfig.states.closed,
           className,
         )}
       >

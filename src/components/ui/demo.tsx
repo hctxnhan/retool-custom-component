@@ -1,7 +1,7 @@
 'use client'
 import * as React from 'react'
 import { useState, FormEvent } from 'react'
-import { Paperclip, Mic, CornerDownLeft } from 'lucide-react'
+import { Paperclip, Mic, CornerDownLeft, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   ChatBubble,
@@ -16,6 +16,8 @@ import {
   ExpandableChatFooter
 } from '@/components/ui/expandable-chat'
 import { ChatMessageList } from '@/components/ui/chat-message-list'
+import ReactMarkdown from 'react-markdown'
+import { MessageLoading } from '@/components/ui/message-loading'
 
 type Message = {
   id: number
@@ -31,7 +33,8 @@ export const ExpandableChatDemo = ({
   placeholder = 'Type your message...',
   lastResponse,
   avatarSrc,
-  content
+  content,
+  onCloseChat
 }: {
   lastMessage: string
   setLastMessage: (message: string) => void
@@ -43,30 +46,22 @@ export const ExpandableChatDemo = ({
   lastResponse?: string
   avatarSrc?: string
   content?: string
-}) => { const [messages, setMessages] = useState<Message[]>([])
+  onCloseChat: () => void
+}) => {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      content: `Hello! I'm Retool AI. How can I help you today?`,
+      role: 'assistant'
+    }
+  ])
 
   const [input, setInput] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(
-    null
-  )
-  const [isFirstMessage, setIsFirstMessage] = useState(true)
+  const [isAwaitingResponse, setIsAwaitingResponse] = useState(false)
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!input.trim()) return
-
-    // const finalMessage =
-    //   isFirstMessage && content
-    //     ? `${content.trim()}\n\n${input.trim()}`
-    //     : input.trim()
-
-    // if (isFirstMessage) {
-    //   setIsFirstMessage(false)
-    // }
-    // console.log('Input message:', input)
-    // console.log('Selected content:', content)
-    // console.log('Final message:', finalMessage)
 
     const newUserMessage: Message = {
       id: Date.now(),
@@ -77,17 +72,16 @@ export const ExpandableChatDemo = ({
     // Update local messages state
     setMessages((prev) => [...prev, newUserMessage])
     setInput('')
-    setIsLoading(true)
 
     // Update lastMessage and messageHistory in parent component
     setLastMessage(input)
-    setPendingUserMessage(input)
     const currentHistory = Array.isArray(_messageHistory) ? _messageHistory : []
     const updatedHistory: Array<{
       role: 'user' | 'assistant'
       content: string
     }> = [...currentHistory, { role: 'user', content: input }]
     setMessageHistory(updatedHistory)
+    setIsAwaitingResponse(true)
   }
 
   // Add effect to handle new AI responses
@@ -98,10 +92,8 @@ export const ExpandableChatDemo = ({
         content: lastResponse,
         role: 'assistant'
       }
-  
+
       setMessages((prev) => [...prev, aiMessage])
-      setIsLoading(false)
-  
       const currentHistory = Array.isArray(_messageHistory)
         ? _messageHistory
         : []
@@ -109,49 +101,32 @@ export const ExpandableChatDemo = ({
         ...currentHistory,
         { role: 'assistant', content: lastResponse }
       ])
+      setIsAwaitingResponse(false)
     }
   }, [lastResponse])
-  
 
-  // const handleAttachFile = () => {
-  //   const input = document.createElement('input')
-  //   input.type = 'file'
-  //   input.multiple = true
-  //   input.accept = '*/*'
-  //   input.onchange = (e) => {
-  //     const files = (e.target as HTMLInputElement).files
-  //     if (files && files.length > 0) {
-  //       const fileNames = Array.from(files).map((file) => file.name)
-  //       const fileMessage = `Attached files: ${fileNames.join(', ')}`
-  //       setInput((prev) => prev + (prev ? '\n' : '') + fileMessage)
-  //     }
-  //   }
-  //   input.click()
-  // }
-
-  // const handleMicrophoneClick = async () => {
-  //   try {
-  //     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-  //     // Here you would typically start recording
-  //     // For now, we'll just show a message that mic access was granted
-  //     setInput((prev) => prev + (prev ? '\n' : '') + '🎤 Voice input enabled')
-  //     // Clean up the stream
-  //     stream.getTracks().forEach((track) => track.stop())
-  //   } catch (error) {
-  //     console.error('Error accessing microphone:', error)
-  //     setInput(
-  //       (prev) => prev + (prev ? '\n' : '') + '❌ Could not access microphone'
-  //     )
-  //   }
-  // }
-
+  const [isOpen, setIsOpen] = useState(true)
+  const handleClose = () => {
+    setIsOpen(false)
+    onCloseChat?.() 
+  }
   return (
     <div className="relative w-full h-full">
       <ExpandableChat
         size="lg"
         className="flex flex-col h-full w-full max-h-[600px]"
+        isOpen={isOpen}
+        onClose={handleClose}
       >
-        <ExpandableChatHeader className="flex-col text-center justify-center">
+        <ExpandableChatHeader className="flex-col text-center justify-center relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-2"
+            onClick={handleClose}
+          >
+            <X className="h-4 w-4" />
+          </Button>
           <h1 className="text-xl font-semibold">Chat with Retool AI ✨</h1>
           <p className="text-sm text-muted-foreground">
             Ask me anything about the components
@@ -167,29 +142,29 @@ export const ExpandableChatDemo = ({
               >
                 <ChatBubbleAvatar
                   className="h-6 w-6 shrink-0 !important"
-                  src={
-                    message.role === 'user'
-                      ? avatarSrc ||
-                        'https://img.icons8.com/?size=100&id=15263&format=png&color=000000'
-                      : 'https://img.icons8.com/?size=100&id=KVOZBZtFxHEy&format=png&color=000000'
-                  }
+                  src={message.role === 'user'
+                    ? avatarSrc ||
+                      'https://img.icons8.com/?size=100&id=15263&format=png&color=000000'
+                    : 'https://img.icons8.com/?size=100&id=KVOZBZtFxHEy&format=png&color=000000'}
                 />
                 <ChatBubbleMessage
                   variant={message.role === 'user' ? 'sent' : 'received'}
                 >
-                  {message.content}
+                  <ReactMarkdown>{message.content}</ReactMarkdown>
                 </ChatBubbleMessage>
               </ChatBubble>
             ))}
 
-            {isLoading && (
+            {isAwaitingResponse && (
               <ChatBubble variant="received">
                 <ChatBubbleAvatar
                   className="h-8 w-8 shrink-0"
                   src="https://img.icons8.com/?size=100&id=KVOZBZtFxHEy&format=png&color=000000"
                   fallback="AI"
                 />
-                <ChatBubbleMessage isLoading />
+                <ChatBubbleMessage variant="received">
+                  <MessageLoading /> 
+                </ChatBubbleMessage>
               </ChatBubble>
             )}
           </ChatMessageList>
@@ -208,25 +183,6 @@ export const ExpandableChatDemo = ({
             />
 
             <div className="flex items-center p-3 pt-0 justify-between">
-              {/* <div className="flex">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  type="button"
-                  onClick={handleAttachFile}
-                >
-                  <Paperclip className="size-4" />
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  type="button"
-                  onClick={handleMicrophoneClick}
-                >
-                  <Mic className="size-4" />
-                </Button>
-              </div> */}
               <Button
                 type="submit"
                 size="sm"

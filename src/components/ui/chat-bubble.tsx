@@ -76,13 +76,8 @@ export function ChatBubbleAvatar({
   className,
 }: ChatBubbleAvatarProps) {
   return (
-    <Avatar className={cn("h-6 w-6", className)}>
-      {src && (
-        <AvatarImage
-          src={src}
-          className="h6 w-6"
-        />
-      )}
+    <Avatar className={cn("h-8 w-8", className)}>
+      {src && <AvatarImage src={src} />}
       <AvatarFallback>{fallback}</AvatarFallback>
     </Avatar>
   )
