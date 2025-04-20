@@ -85,37 +85,35 @@ const AiEditor: React.FC<AiEditorProps> = ({
     top: number
     left: number
   } | null>(null)
-
+  const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom')
+  const [toolbarDirection, setToolbarDirection] = useState<'top' | 'bottom'>('top');
   const toolbarRef = useRef<HTMLDivElement | null>(null)
 
   const updateToolbarPosition = (selectionRect: DOMRect) => {
     const padding = 8
     const toolbarHeight = toolbarRef.current?.offsetHeight || 100
     const toolbarWidth = toolbarRef.current?.offsetWidth || 300
-
-    const spaceBelow = window.innerHeight - selectionRect.bottom
-    const spaceAbove = selectionRect.top
-    const spaceRight = window.innerWidth - selectionRect.left
-
-    // Try to position above/below first
-    let top = spaceBelow > toolbarHeight + padding
-      ? selectionRect.bottom + padding  // Below selection
-      : selectionRect.top - toolbarHeight - padding  // Above selection
-
-    // If there's not enough space above or below, position to the side
-    if (spaceBelow < toolbarHeight + padding && spaceAbove < toolbarHeight + padding) {
-      top = Math.max(padding, selectionRect.top)  // Align with selection top
-    }
-
-    // Calculate left position to avoid going off-screen
-    let left = selectionRect.left
-    if (spaceRight < toolbarWidth) {
-      // If not enough space on the right, try to position on the left side
-      left = Math.max(padding, selectionRect.right - toolbarWidth)
-    }
-
+  
+    const isNearBottom = selectionRect.bottom + toolbarHeight + padding > window.innerHeight
+  
+    const top = isNearBottom
+      ? selectionRect.top - toolbarHeight - padding
+      : selectionRect.bottom + padding
+  
+    const left = selectionRect.left + selectionRect.width / 2 - toolbarWidth / 2
+  
+    // Cập nhật vị trí và hướng hiển thị
     setToolbarPosition({ top, left })
-  }
+    setToolbarDirection(isNearBottom ? 'top' : 'bottom')
+  
+    // Optional: áp dụng CSS trực tiếp (nếu cần)
+    if (toolbarRef.current) {
+      toolbarRef.current.style.position = 'fixed'
+      toolbarRef.current.style.top = `${top}px`
+      toolbarRef.current.style.left = `${left}px`
+      toolbarRef.current.style.visibility = 'visible'
+    }
+  }  
 
   const handleTextSelection = () => {
     const selection = window.getSelection()
@@ -158,10 +156,19 @@ const AiEditor: React.FC<AiEditorProps> = ({
           const bounds = quillRef.current!.getBounds(range.index, range.length)
           const editorContainer = editorRef.current!.getBoundingClientRect()
 
-          setToolbarPosition({
-            top: bounds.top + editorContainer.top + window.scrollY - 40,
-            left: bounds.left + editorContainer.left + window.scrollX
-          })
+          const selectionRect = {
+            top: bounds.top + editorContainer.top + window.scrollY,
+            bottom: bounds.bottom + editorContainer.top + window.scrollY,
+            left: bounds.left + editorContainer.left + window.scrollX,
+            right: bounds.right + editorContainer.left + window.scrollX,
+            width: bounds.width,
+            height: bounds.height,
+            x: bounds.left + editorContainer.left + window.scrollX,
+            y: bounds.top + editorContainer.top + window.scrollY,
+            toJSON: () => {},
+          } as DOMRect;
+      
+          updateToolbarPosition(selectionRect);
         } else if (selectedType === 'Ask AI') {
           setShowPromptOptions(false)
           setSelectedText('')
@@ -322,10 +329,14 @@ const AiEditor: React.FC<AiEditorProps> = ({
 
                     {selectedType === type && type !== 'Ask AI' && (
                       <DropdownMenuContent
-                        className="bg-white p-1 border shadow-lg rounded-md mt-2 w-48"
-                        side="bottom"
+                        className="bg-white p-1 border shadow-lg rounded-md w-48"
+                        side={dropdownPosition}
                         align="start"
-                        sideOffset={18}
+                        sideOffset={5}
+                        alignOffset={-4}
+                        avoidCollisions
+                        collisionPadding={8}
+                        sticky="always"
                       >
                         <div className="flex flex-col">
                           {configOptions[type].map((prompt) => {
