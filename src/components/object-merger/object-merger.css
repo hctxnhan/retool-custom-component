@@ -1,0 +1,24 @@
+/* This file contains custom styles for the object-merger component */
+
+/* Sticky toolbar styles */
+.object-merger-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background-color: var(--background);
+  padding-top: 0.5rem;
+}
+
+/* Table styles */
+.table-wrapper {
+  overflow-x: auto;
+}
+
+/* Additional styles for pinned column */
+.pinned-column {
+  position: sticky;
+  right: 0;
+  z-index: 10;
+  background-color: var(--background);
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.05);
+}

@@ -1,61 +1,44 @@
-import React from 'react'
-import { type FC } from 'react'
 import './output.css'
+import React, { FC } from 'react'
 import { Retool } from '@tryretool/custom-component-support'
-import { Button } from './components/ui/button'
+import ObjectMerger from './components/object-merger/object-merger'
+import { PropertyConfig } from './lib/object-merger-utils'
+import { WrapperComponent } from './retool-components/wrapper-component'
 
-export const NhanTestComponent: FC = () => {
-  const [name, _setName] = Retool.useStateString({
-    name: 'name'
+export const RetoolersObjectMerger: FC = () => {
+  const [objects, _setObjects] = Retool.useStateArray({
+    name: 'objects'
+  })
+
+  const [config, _setConfig] = Retool.useStateArray({
+    name: 'config'
   })
 
   const [theme, _setTheme] = Retool.useStateObject({
     name: 'theme'
   })
+
+  const [result, _setResult] = Retool.useStateObject({
+    name: 'result',
+    inspector: 'hidden'
+  })
+
+  const onComplete = Retool.useEventCallback({ name: 'Complete' })
+
+  const onMergeComplete = (result: Record<string, unknown>) => {
+    _setResult(result)
+    onComplete()
+  }
 
   return (
     <div>
       <WrapperComponent cssVariables={theme}>
-        <Button className="w-full h-full" variant={'default'}>
-          Hello {name}
-        </Button>
+        <ObjectMerger
+          objects={objects as unknown as Record<string, unknown>[]}
+          configuration={config as unknown as PropertyConfig[]}
+          onMergeComplete={onMergeComplete}
+        />
       </WrapperComponent>
-    </div>
-  )
-}
-
-export const BBBBB: FC = () => {
-  const [name, _setName] = Retool.useStateString({
-    name: 'name'
-  })
-
-  const [theme, _setTheme] = Retool.useStateObject({
-    name: 'theme'
-  })
-
-  return (
-    <div>
-      <WrapperComponent cssVariables={theme}>text</WrapperComponent>
-    </div>
-  )
-}
-
-const WrapperComponent = ({
-  cssVariables,
-  children
-}: {
-  cssVariables: Record<string, string>
-  children: React.ReactNode
-}) => {
-  return (
-    <div
-      style={{
-        ...Object.fromEntries(
-          Object.entries(cssVariables).map(([k, v]) => [k, v])
-        )
-      }}
-    >
-      {children}
     </div>
   )
 }
