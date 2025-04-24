@@ -32,30 +32,6 @@ export const NhanTestComponent: FC = () => {
   )
 }
 
-export const TestComponent: FC = () => {
-  const [theme, _setTheme] = Retool.useStateObject({
-    name: 'theme'
-  })
-
-  return (
-    <div>
-      <WrapperComponent cssVariables={theme as Record<string, string>}>
-        <DropdownMenu>
-          <DropdownMenuTrigger>
-            <button className="bg-blue-500 text-white px-4 py-2 rounded">
-              Open Menu
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem>Option 1</DropdownMenuItem>
-            <DropdownMenuItem>Option 2</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </WrapperComponent>
-    </div>
-  )
-}
-
 export const AiChatComponent: FC = () => {
   const [theme, _setTheme] = Retool.useStateObject({
     name: 'theme'
@@ -120,23 +96,25 @@ export const AiChatComponent: FC = () => {
   return (
     <div>
       <WrapperComponent cssVariables={theme as Record<string, string>}>
-        <ExpandableChatDemo
-          lastMessage={lastMessage}
-          setLastMessage={setLastMessage}
-          _messageHistory={
-            messageHistory as Array<{
-              role: 'user' | 'assistant'
-              content: string
-            }>
-          }
-          setMessageHistory={setMessageHistory}
-          placeholder={placeholder || 'Type your message...'}
-          lastResponse={(() => {
-            console.log('lastResponse', lastResponse)
-            return lastResponse
-          })()}
-          avatarSrc={avatarSrc}
-        />
+      <ExpandableChatDemo
+              lastMessage={lastMessage}
+              setLastMessage={setLastMessage}
+              _messageHistory={
+                messageHistory as Array<{
+                  role: 'user' | 'assistant'
+                  content: string
+                }>
+              }
+              setMessageHistory={setMessageHistory}
+              placeholder={placeholder || 'Type your message...'}
+              lastResponse={lastResponse}
+              _setLastResponse={_setLastResponse}
+              avatarSrc={avatarSrc}
+              content={content}
+              onCloseChat={() => {
+                setSelectedType('')
+              }}
+            />
       </WrapperComponent>
     </div>
   )
@@ -229,26 +207,6 @@ export const AiEditorComponent: FC = () => {
     handleMessage()
   }, [lastMessage])
 
-  // React.useEffect(() => {
-  //   const handleMessage = async () => {
-  //     if (lastMessage) {
-  //       const currentHistory = Array.isArray(messageHistory) ? messageHistory : []
-
-  //       setMessageHistory([
-  //         ...currentHistory,
-  //         {
-  //           role: 'user',
-  //           content: content,
-  //         },
-  //       ])
-
-  //       await onMessage()
-  //     }
-  //   }
-
-  //   handleMessage()
-  // }, [lastMessage])
-
   React.useEffect(() => {
     if (selectedType === 'Ask AI' && content) {
       const currentHistory = Array.isArray(messageHistory) ? messageHistory : []
@@ -296,10 +254,7 @@ export const AiEditorComponent: FC = () => {
         >
           <AiEditor
             content={content}
-            onContentChange={(updated) => {
-              console.log('Editor content:', updated)
-              setContent(updated)
-            }}
+            setContent={setContent}
             onProcess={handleAIProcess}
             aiResult={aiResult}
             onTypeChange={setSelectedType}
@@ -338,10 +293,12 @@ export const AiEditorComponent: FC = () => {
               setMessageHistory={setMessageHistory}
               placeholder={placeholder || 'Type your message...'}
               lastResponse={lastResponse}
+              _setLastResponse={_setLastResponse}
               avatarSrc={avatarSrc}
               content={content}
               onCloseChat={() => {
                 setSelectedType('')
+                setContent('')
               }}
             />
           </div>

@@ -6,7 +6,8 @@ import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
-  DropdownMenuItem
+  DropdownMenuItem,
+  DropdownMenuPortal
 } from './dropdown-menu'
 
 interface AiEditorProps {
@@ -17,6 +18,7 @@ interface AiEditorProps {
     promptContent: string
   }) => void
   content?: string
+  setContent: (newValue: string) => void
   aiResult?: string
   onTypeChange?: (type: string) => void
   lastMessage?: string
@@ -67,7 +69,8 @@ const AiEditor: React.FC<AiEditorProps> = ({
   onProcess,
   aiResult,
   onTypeChange,
-  onContentChange
+  onContentChange,
+  setContent
 }) => {
   const editorRef = useRef<HTMLDivElement>(null)
   const quillRef = useRef<Quill | null>(null)
@@ -85,35 +88,102 @@ const AiEditor: React.FC<AiEditorProps> = ({
     top: number
     left: number
   } | null>(null)
-  const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom')
-  const [toolbarDirection, setToolbarDirection] = useState<'top' | 'bottom'>('top');
+  const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>(
+    'bottom'
+  )
+  const [toolbarDirection, setToolbarDirection] = useState<'top' | 'bottom'>(
+    'top'
+  )
+
   const toolbarRef = useRef<HTMLDivElement | null>(null)
 
   const updateToolbarPosition = (selectionRect: DOMRect) => {
     const padding = 8
     const toolbarHeight = toolbarRef.current?.offsetHeight || 100
     const toolbarWidth = toolbarRef.current?.offsetWidth || 300
-  
-    const isNearBottom = selectionRect.bottom + toolbarHeight + padding > window.innerHeight
-  
-    const top = isNearBottom
-      ? selectionRect.top - toolbarHeight - padding
-      : selectionRect.bottom + padding
-  
-    const left = selectionRect.left + selectionRect.width / 2 - toolbarWidth / 2
-  
-    // Cập nhật vị trí và hướng hiển thị
+    const dropdownHeight = 200 // Estimated max height of dropdown
+    const viewportHeight = window.innerHeight
+    const viewportWidth = window.innerWidth
+
+    // Calculate if we're near the bottom of the viewport
+    const isNearBottom =
+      selectionRect.bottom + toolbarHeight + dropdownHeight + padding >
+      viewportHeight
+    const isNearTop =
+      selectionRect.top - toolbarHeight - dropdownHeight - padding < 0
+
+    // Determine the best position for the toolbar
+    let top = selectionRect.bottom + padding
+    let left = selectionRect.left + selectionRect.width / 2 - toolbarWidth / 2
+
+    // If near bottom, position above the selection
+    if (isNearBottom) {
+      top = selectionRect.top - toolbarHeight - padding
+    }
+
+    // If near top, position below the selection
+    if (isNearTop) {
+      top = selectionRect.bottom + padding
+    }
+
+    // Ensure the toolbar stays within viewport horizontally
+    const maxLeft = viewportWidth - toolbarWidth - padding
+    const minLeft = padding
+    left = Math.max(minLeft, Math.min(left, maxLeft))
+
+    // Ensure the toolbar stays within viewport vertically
+    const maxTop = viewportHeight - toolbarHeight - padding
+    const minTop = padding
+    top = Math.max(minTop, Math.min(top, maxTop))
+
     setToolbarPosition({ top, left })
     setToolbarDirection(isNearBottom ? 'top' : 'bottom')
-  
-    // Optional: áp dụng CSS trực tiếp (nếu cần)
+    setDropdownPosition(isNearBottom ? 'top' : 'bottom')
+
     if (toolbarRef.current) {
       toolbarRef.current.style.position = 'fixed'
       toolbarRef.current.style.top = `${top}px`
       toolbarRef.current.style.left = `${left}px`
       toolbarRef.current.style.visibility = 'visible'
     }
-  }  
+  }
+
+  // Function to update selection rectangle based on current selection and editor position
+  const updateSelectionRectangle = () => {
+    if (selectionRange && quillRef.current && editorRef.current) {
+      const bounds = quillRef.current.getBounds(
+        selectionRange.index,
+        selectionRange.length
+      )
+      const editorContainer = editorRef.current.getBoundingClientRect()
+      const updatedSelectionRect = {
+        top: bounds.top + editorContainer.top + window.scrollY,
+        bottom: bounds.bottom + editorContainer.top + window.scrollY,
+        left: bounds.left + editorContainer.left + window.scrollX,
+        right: bounds.right + editorContainer.left + window.scrollX,
+        width: bounds.width,
+        height: bounds.height,
+        x: bounds.left + editorContainer.left + window.scrollX,
+        y: bounds.top + editorContainer.top + window.scrollY,
+        toJSON: () => {}
+      } as DOMRect
+      updateToolbarPosition(updatedSelectionRect)
+    }
+  }
+
+  // Handle viewport changes (scroll or resize)
+  useEffect(() => {
+    const handleViewportChange = () => {
+      updateSelectionRectangle()
+    }
+
+    window.addEventListener('scroll', handleViewportChange)
+    window.addEventListener('resize', handleViewportChange)
+    return () => {
+      window.removeEventListener('scroll', handleViewportChange)
+      window.removeEventListener('resize', handleViewportChange)
+    }
+  }, [selectionRange])
 
   const handleTextSelection = () => {
     const selection = window.getSelection()
@@ -125,6 +195,15 @@ const AiEditor: React.FC<AiEditorProps> = ({
     updateToolbarPosition(rect)
     setShowPromptOptions(true)
   }
+
+  useEffect(() => {
+    console.log('selectedText:', selectedText)
+    console.log('selectedType:', selectedType)
+
+    if (selectedText && selectedType === 'Ask AI') {
+      setContent(selectedText)
+    }
+  }, [selectedText, selectedType])
 
   useEffect(() => {
     document.addEventListener('mouseup', handleTextSelection)
@@ -165,10 +244,9 @@ const AiEditor: React.FC<AiEditorProps> = ({
             height: bounds.height,
             x: bounds.left + editorContainer.left + window.scrollX,
             y: bounds.top + editorContainer.top + window.scrollY,
-            toJSON: () => {},
-          } as DOMRect;
-      
-          updateToolbarPosition(selectionRect);
+            toJSON: () => {}
+          } as DOMRect
+          updateToolbarPosition(selectionRect)
         } else if (selectedType === 'Ask AI') {
           setShowPromptOptions(false)
           setSelectedText('')
@@ -184,7 +262,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
     }
   }, [content])
 
-  // ✨ Lắng nghe khi Retool trả kết quả về
+  // Listen for aiResult changes
   useEffect(() => {
     if (aiResult && selectedText) {
       console.log('[aiResult received]', { aiResult, selectedText })
@@ -194,13 +272,20 @@ const AiEditor: React.FC<AiEditorProps> = ({
     }
   }, [aiResult])
 
-  const handleOptionSelect = (type: string) => {
+  const handleTypeSelect = (type: string) => {
     setSelectedType(type)
+    setShowPromptOptions(true)
 
-    if (quillRef.current && selectionRange) {
-      setTimeout(() => {
-        quillRef.current?.setSelection(selectionRange)
-      }, 0)
+    // Store the current selection before any state updates
+    const currentSelection = quillRef.current?.getSelection()
+    if (quillRef.current && currentSelection) {
+      // Use requestAnimationFrame to ensure selection is restored after state updates
+      requestAnimationFrame(() => {
+        quillRef.current?.setSelection(
+          currentSelection.index,
+          currentSelection.length
+        )
+      })
     }
 
     if (onTypeChange) {
@@ -231,6 +316,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
     })
 
     setShowAIResult(false)
+    setShowPromptOptions(false) // Close the dropdown after selection
   }
 
   const handleConfirm = () => {
@@ -279,6 +365,31 @@ const AiEditor: React.FC<AiEditorProps> = ({
     }
   }, [toolbarPosition])
 
+  useEffect(() => {
+    if (selectedType === 'Ask AI' && quillRef.current) {
+      const editorText = quillRef.current.getText()
+
+      if (content && content.trim() !== '') {
+        const matchIndex = editorText.indexOf(content.trim())
+
+        if (matchIndex !== -1) {
+          // Highlight text bằng formatText
+          quillRef.current.formatText(matchIndex, content.trim().length, {
+            background: '#FFEB3B' // Màu vàng highlight
+          })
+
+          // Cập nhật selection để user thấy rõ vùng được chọn
+          quillRef.current.setSelection(matchIndex, content.trim().length)
+        }
+      } else {
+        // Nếu content rỗng hoặc không có giá trị, xóa highlight
+        quillRef.current.formatText(0, editorText.length, {
+          background: '' // Bỏ màu nền
+        })
+      }
+    }
+  }, [selectedType, content])
+
   return (
     <div className="w-full min-h-screen bg-white">
       <div className="space-y-6 w-full h-full p-4">
@@ -292,83 +403,99 @@ const AiEditor: React.FC<AiEditorProps> = ({
             ref={toolbarRef}
             className="absolute z-50 bg-white border rounded-xl shadow-xl"
             style={{
-              top: `${
-                (isLoading && selectedType !== 'Ask AI')
-                  ? toolbarPosition.top + 70
-                  : toolbarPosition.top
-              }px`,
+              top: `${isLoading && selectedType !== 'Ask AI' ? toolbarPosition.top : toolbarPosition.top}px`,
               left: `${toolbarPosition.left}px`
             }}
           >
             <div className="p-3 w-max min-w-[300px] max-w-[500px]">
-              {/* <p className="text-sm font-semibold text-gray-800 mb-3 px-1">
-                Select an option:
-              </p> */}
-
-              {/* Loại và các lựa chọn prompt */}
+              {/* Type and prompt options */}
               <div className="flex flex-wrap gap-1">
-                {Object.keys(configOptions).map((type) => (
-                  <DropdownMenu key={type}>
-                    <DropdownMenuTrigger
-                      asChild
-                      onMouseDown={(e) => e.preventDefault()}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={`rounded-full border px-4 py-1 text-sm hover:bg-gray-100 ${
-                          selectedType === type
-                            ? 'bg-blue-100 text-blue-600 border-blue-400'
-                            : 'border-gray-300'
-                        }`}
-                        onClick={() => handleOptionSelect(type)}
+                {['Rewrite', 'Translate', 'Tone', 'Ask AI'].map(
+                  (type, index, array) => (
+                    <DropdownMenu key={type}>
+                      <DropdownMenuTrigger
+                        asChild
+                        onMouseDown={(e) => {
+                          e.preventDefault() // Prevent losing focus from editor
+                          handleTypeSelect(type) // Direct call instead of using onClick in <Button>
+                        }}
                       >
-                        {type}
-                      </Button>
-                    </DropdownMenuTrigger>
-
-                    {selectedType === type && type !== 'Ask AI' && (
-                      <DropdownMenuContent
-                        className="bg-white p-1 border shadow-lg rounded-md w-48"
-                        side={dropdownPosition}
-                        align="start"
-                        sideOffset={5}
-                        alignOffset={-4}
-                        avoidCollisions
-                        collisionPadding={8}
-                        sticky="always"
-                      >
-                        <div className="flex flex-col">
-                          {configOptions[type].map((prompt) => {
-                            const isActive = selectedPrompt === prompt
-                            const isDisabled =
-                              isLoading && isActive && selectedType !== 'Ask AI'
-
-                            return (
-                              <DropdownMenuItem
-                                key={prompt}
-                                onClick={() => handlePromptSelect(prompt)}
-                                disabled={isDisabled}
-                                className={`text-sm px-3 py-2 cursor-pointer rounded ${
-                                  isActive ? 'bg-blue-100 text-blue-600' : ''
-                                } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
-                              >
-                                {isLoading &&
-                                isActive &&
-                                selectedType !== 'Ask AI'
-                                  ? `${prompt} (Thinking...)`
-                                  : prompt}
-                              </DropdownMenuItem>
-                            )
-                          })}
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-4 py-1 text-sm cursor-pointer ${
+                              selectedType === type
+                                ? 'bg-blue-100 text-blue-600'
+                                : 'text-gray-600'
+                            }`}
+                            onClick={() => handleTypeSelect(type)}
+                          >
+                            {type}
+                          </span>
+                          {index !== array.length - 1 && (
+                            <span className="mx-2 text-gray-400">|</span>
+                          )}
                         </div>
-                      </DropdownMenuContent>
-                    )}
-                  </DropdownMenu>
-                ))}
+                      </DropdownMenuTrigger>
+
+                      {selectedType === type && type !== 'Ask AI' && (
+                        <DropdownMenuPortal>
+                          <DropdownMenuContent
+                            className="max-h-48 overflow-y-auto"
+                            side={dropdownPosition}
+                            align="start"
+                            sideOffset={20}
+                            alignOffset={-4}
+                            avoidCollisions
+                            collisionPadding={24}
+                            sticky="always"
+                            onEscapeKeyDown={(e) => e.stopPropagation()}
+                            style={{
+                              zIndex: 1000,
+                              maxHeight: '200px',
+                              overflowY: 'auto'
+                            }}
+                            onCloseAutoFocus={(e) => {
+                              e.preventDefault()
+                              if (quillRef.current && selectionRange) {
+                                quillRef.current.setSelection(selectionRange)
+                              }
+                            }}
+                          >
+                            <div className="flex flex-col space-y-0.5">
+                              {configOptions[type].map((prompt) => {
+                                const isActive = selectedPrompt === prompt
+                                const isDisabled =
+                                  isLoading &&
+                                  isActive &&
+                                  selectedType !== 'Ask AI'
+
+                                return (
+                                  <DropdownMenuItem
+                                    key={prompt}
+                                    onClick={() => handlePromptSelect(prompt)}
+                                    disabled={isDisabled}
+                                    className={`rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-gray-100 max-h-48 overflow-y-auto ${
+                                      isActive ? 'bg-blue-50 text-blue-600' : ''
+                                    } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                  >
+                                    {isLoading &&
+                                    isActive &&
+                                    selectedType !== 'Ask AI'
+                                      ? `${prompt} (Thinking...)`
+                                      : prompt}
+                                  </DropdownMenuItem>
+                                )
+                              })}
+                            </div>
+                          </DropdownMenuContent>
+                        </DropdownMenuPortal>
+                      )}
+                    </DropdownMenu>
+                  )
+                )}
               </div>
 
-              {/* Loading + Prompt đã chọn */}
+              {/* Loading + Selected Prompt */}
               {selectedType && selectedType !== 'Ask AI' && (
                 <div className="mt-4 space-y-2">
                   {isLoading && (
@@ -379,30 +506,6 @@ const AiEditor: React.FC<AiEditorProps> = ({
                       </span>
                     </div>
                   )}
-
-                  <div className="flex flex-col gap-1">
-                    {configOptions[
-                      selectedType as keyof typeof configOptions
-                    ].map((opt) => {
-                      const isActive = selectedPrompt === opt
-                      return (
-                        <Button
-                          key={opt}
-                          variant="ghost"
-                          size="sm"
-                          className={`rounded-full px-4 py-1 text-sm border ${
-                            isActive
-                              ? 'bg-blue-500 text-white border-blue-500'
-                              : 'border-gray-300 hover:bg-blue-50 hover:border-blue-300'
-                          }`}
-                          disabled={isLoading && isActive}
-                          onClick={() => handlePromptSelect(opt)}
-                        >
-                          {isLoading && isActive ? `${opt} (Thinking...)` : opt}
-                        </Button>
-                      )
-                    })}
-                  </div>
                 </div>
               )}
             </div>
@@ -413,60 +516,57 @@ const AiEditor: React.FC<AiEditorProps> = ({
           <div
             className="absolute z-50"
             style={{
-              top: `${toolbarPosition.top + 60}px`, 
+              top: `${toolbarPosition.top + 50}px`,
               left: `${toolbarPosition.left}px`
             }}
           >
-            {/* Mũi tên nhỏ chỉ lên trên (arrow tip) */}
+            {/* Arrow tip pointing upward */}
             <div className="flex justify-center relative">
-              <div className="w-3 h-3 bg-white rotate-45 border-t border-l border-gray-300 absolute -top-1.5 z-[-1]" />
+              <div className="w-3 h-3 bg-black rotate-45 border-t border-l border-gray-300 absolute -top-1.5 z-[-1]" />
             </div>
 
-            {/* Hộp nội dung AI Suggestion */}
-            <div className="p-4 bg-white border border-gray-300 rounded-xl shadow-xl min-w-[400px] max-w-[900px] space-y-3 text-sm">
-              {/* Header */}
-              <div className="font-semibold text-gray-800 flex items-center gap-1">
-                ✨ AI Suggestion
-              </div>
+            {/* AI Suggestion content box */}
+            <div className="p-3 bg-white rounded-lg shadow-sm min-w-[400px] max-w-[900px] space-y-3 text-sm border border-gray-200">
+              <div className="font-semibold text-gray-900">AI Suggestion</div>
 
-              {/* Loading hoặc kết quả */}
               {isLoading && selectedType !== 'Ask AI' ? (
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-t-blue-500 border-gray-300 rounded-full animate-spin" />
-                  <span className="text-gray-500">Processing...</span>
+                  <div className="w-4 h-4 border-2 border-t-black border-gray-300 rounded-full animate-spin" />
+                  <span className="text-gray-600">Processing...</span>
                 </div>
               ) : (
-                <div className="p-2 bg-gray-100 border rounded text-gray-700 font-mono whitespace-pre-wrap break-words overflow-x-auto">
+                <div className="p-3 bg-gray-50 text-gray-700 font-mono break-words">
                   {aiResult}
                 </div>
               )}
 
-              {/* Button actions */}
               {!isLoading && selectedType !== 'Ask AI' && (
-                <div className="flex flex-col border-t pt-2 gap-1">
+                <div className="flex items-center justify-center gap-4 pt-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="justify-start hover:bg-gray-100"
+                    className="text-gray-800 hover:bg-gray-100"
                     onClick={handleConfirm}
                   >
-                    ✅ Accept
+                    Accept
                   </Button>
+                  <span className="text-gray-500">|</span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="justify-start hover:bg-gray-100 text-red-500"
+                    className="text-red-600 hover:bg-gray-100"
                     onClick={handleReject}
                   >
-                    ❌ Discard
+                    Discard
                   </Button>
+                  <span className="text-gray-500">|</span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="justify-start hover:bg-gray-100"
+                    className="text-gray-800 hover:bg-gray-100"
                     onClick={handleRegenerate}
                   >
-                    🔄 Try again
+                    Try again
                   </Button>
                 </div>
               )}

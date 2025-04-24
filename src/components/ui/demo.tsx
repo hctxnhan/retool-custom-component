@@ -32,11 +32,12 @@ export const ExpandableChatDemo = ({
   setMessageHistory,
   placeholder = 'Type your message...',
   lastResponse,
+  _setLastResponse,
   avatarSrc,
   content,
-  onCloseChat
+  onCloseChat,
 }: {
-  lastMessage: string
+  lastMessage: string,
   setLastMessage: (message: string) => void
   _messageHistory: Array<{ role: 'user' | 'assistant'; content: string }>
   setMessageHistory: (
@@ -44,6 +45,7 @@ export const ExpandableChatDemo = ({
   ) => void
   placeholder?: string
   lastResponse?: string
+  _setLastResponse?: (response: string) => void
   avatarSrc?: string
   content?: string
   onCloseChat: () => void
@@ -84,6 +86,8 @@ export const ExpandableChatDemo = ({
     setIsAwaitingResponse(true)
   }
 
+
+
   // Add effect to handle new AI responses
   React.useEffect(() => {
     if (lastResponse) {
@@ -107,9 +111,19 @@ export const ExpandableChatDemo = ({
 
   const [isOpen, setIsOpen] = useState(true)
   const handleClose = () => {
-    setIsOpen(false)
-    onCloseChat?.() 
+    setMessageHistory([])
+    setLastMessage('')
+    _setLastResponse?.('')
+    setMessages([
+      {
+        id: 1,
+        content: `Hello! I'm Retool AI. How can I help you today?`,
+        role: 'assistant'
+      }
+    ])
+    onCloseChat()
   }
+  
   return (
     <div className="relative w-full h-full">
       <ExpandableChat
