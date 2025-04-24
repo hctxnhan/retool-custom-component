@@ -19,6 +19,7 @@ interface AiEditorProps {
   }) => void
   content?: string
   setContent: (newValue: string) => void
+  setSelectedTextPosition?: (position: { top: number; left: number }) => void
   aiResult?: string
   onTypeChange?: (type: string) => void
   lastMessage?: string
@@ -70,7 +71,8 @@ const AiEditor: React.FC<AiEditorProps> = ({
   aiResult,
   onTypeChange,
   onContentChange,
-  setContent
+  setContent,
+  setSelectedTextPosition
 }) => {
   const editorRef = useRef<HTMLDivElement>(null)
   const quillRef = useRef<Quill | null>(null)
@@ -94,7 +96,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
   const [toolbarDirection, setToolbarDirection] = useState<'top' | 'bottom'>(
     'top'
   )
-
+  
   const toolbarRef = useRef<HTMLDivElement | null>(null)
 
   const updateToolbarPosition = (selectionRect: DOMRect) => {
@@ -197,13 +199,46 @@ const AiEditor: React.FC<AiEditorProps> = ({
   }
 
   useEffect(() => {
-    console.log('selectedText:', selectedText)
-    console.log('selectedType:', selectedType)
-
     if (selectedText && selectedType === 'Ask AI') {
       setContent(selectedText)
     }
   }, [selectedText, selectedType])
+
+  //new fix
+  useEffect(() => {
+    // Kiểm tra điều kiện trước khi thực thi logic
+    if (selectedText && selectedType === 'Ask AI') {
+      const handleSelectionChange = () => {
+        if (!quillRef.current || !setSelectedTextPosition) {
+          return
+        }
+        const selection = quillRef.current.getSelection()
+        if (selection && selection.length > 0) {
+          const bounds = quillRef.current.getBounds(selection.index)  
+          const editorElement = editorRef.current
+          if (editorElement) {
+            const rect = editorElement.getBoundingClientRect()
+            const position = {
+              top: rect.top + bounds.top + window.scrollY,
+              left: rect.left + bounds.left + window.scrollX
+            }  
+            setSelectedTextPosition(position)
+          }
+        }
+      }
+  
+      const quill = quillRef.current
+      if (quill) {
+        quill.on('selection-change', handleSelectionChange)
+      }
+  
+      return () => {
+        if (quill) {
+          quill.off('selection-change', handleSelectionChange)
+        }
+      }
+    }
+  }, [setSelectedTextPosition, selectedText, selectedType])  
 
   useEffect(() => {
     document.addEventListener('mouseup', handleTextSelection)
@@ -365,29 +400,63 @@ const AiEditor: React.FC<AiEditorProps> = ({
     }
   }, [toolbarPosition])
 
+  // useEffect(() => {
+  //   const previousContentRef = useRef<string>('');
+
+  //   if (selectedType === 'Ask AI' && quillRef.current) {
+  //     const editorText = quillRef.current.getText()
+
+  //     if (content && content.trim() !== '') {
+  //       const matchIndex = editorText.indexOf(content.trim())
+
+  //       if (matchIndex !== -1) {
+  //         // Highlight text bằng formatText
+  //         quillRef.current.formatText(matchIndex, content.trim().length, {
+  //           background: '#FFEB3B' // Màu vàng highlight
+  //         })
+
+  //         // Cập nhật selection để user thấy rõ vùng được chọn
+  //         quillRef.current.setSelection(matchIndex, content.trim().length)
+  //       }
+  //     } if (!content || content.trim() === ''){ {
+  //         background: '' // Bỏ màu nền
+  //       }
+  //     } else {
+  //       quillRef.current.formatText(0, editorText.length, {
+  //         background: '' // Bỏ màu nền
+  //       })
+  //     }
+  //   }
+  // }, [selectedType, content])
+  const previousContentRef = useRef<string>(''); // Lưu trữ giá trị trước đó của content
+
   useEffect(() => {
-    if (selectedType === 'Ask AI' && quillRef.current) {
-      const editorText = quillRef.current.getText()
+    if (selectedType !== 'Ask AI' || !quillRef.current) return
 
-      if (content && content.trim() !== '') {
-        const matchIndex = editorText.indexOf(content.trim())
+    const quill = quillRef.current
+    const editorText = quill.getText()
 
-        if (matchIndex !== -1) {
-          // Highlight text bằng formatText
-          quillRef.current.formatText(matchIndex, content.trim().length, {
-            background: '#FFEB3B' // Màu vàng highlight
-          })
+    const trimmedContent = content?.trim() || ''
 
-          // Cập nhật selection để user thấy rõ vùng được chọn
-          quillRef.current.setSelection(matchIndex, content.trim().length)
-        }
-      } else {
-        // Nếu content rỗng hoặc không có giá trị, xóa highlight
-        quillRef.current.formatText(0, editorText.length, {
-          background: '' // Bỏ màu nền
+    // Nếu content thay đổi → clear toàn bộ highlight trước
+    if (previousContentRef.current !== trimmedContent) {
+      quill.formatText(0, editorText.length, { background: '' })
+    }
+
+    // Nếu content hợp lệ → highlight
+    if (trimmedContent !== '') {
+      const matchIndex = editorText.indexOf(trimmedContent)
+
+      if (matchIndex !== -1) {
+        quill.formatText(matchIndex, trimmedContent.length, {
+          background: '#FFEB3B'
         })
+        quill.setSelection(matchIndex, trimmedContent.length)
       }
     }
+
+    // Cập nhật previousContent
+    previousContentRef.current = trimmedContent
   }, [selectedType, content])
 
   return (

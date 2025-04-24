@@ -96,25 +96,25 @@ export const AiChatComponent: FC = () => {
   return (
     <div>
       <WrapperComponent cssVariables={theme as Record<string, string>}>
-      <ExpandableChatDemo
-              lastMessage={lastMessage}
-              setLastMessage={setLastMessage}
-              _messageHistory={
-                messageHistory as Array<{
-                  role: 'user' | 'assistant'
-                  content: string
-                }>
-              }
-              setMessageHistory={setMessageHistory}
-              placeholder={placeholder || 'Type your message...'}
-              lastResponse={lastResponse}
-              _setLastResponse={_setLastResponse}
-              avatarSrc={avatarSrc}
-              content={content}
-              onCloseChat={() => {
-                setSelectedType('')
-              }}
-            />
+        <ExpandableChatDemo
+          lastMessage={lastMessage}
+          setLastMessage={setLastMessage}
+          _messageHistory={
+            messageHistory as Array<{
+              role: 'user' | 'assistant'
+              content: string
+            }>
+          }
+          setMessageHistory={setMessageHistory}
+          placeholder={placeholder || 'Type your message...'}
+          lastResponse={lastResponse}
+          _setLastResponse={_setLastResponse}
+          avatarSrc={avatarSrc}
+          content={content}
+          onCloseChat={() => {
+            setSelectedType('')
+          }}
+        />
       </WrapperComponent>
     </div>
   )
@@ -141,6 +141,14 @@ export const AiEditorComponent: FC = () => {
   const [aiResult, _setAIResult] = Retool.useStateString({
     name: 'aiResult'
   })
+
+  const [selectedTextPosition, setSelectedTextPosition] = Retool.useStateObject(
+    {
+      name: 'selectedTextPosition',
+      inspector: 'hidden',
+      initialValue: { top: 0, left: 0 }
+    }
+  )
 
   const onProcess = Retool.useEventCallback({
     name: 'onProcess'
@@ -245,8 +253,7 @@ export const AiEditorComponent: FC = () => {
         {/* AiEditor */}
         <div
           style={{
-            flex: selectedType === 'Ask AI' ? 1 : '1 1 100%',
-            width: selectedType === 'Ask AI' ? undefined : '100%',
+            flex: 1,
             height: '100%',
             boxSizing: 'border-box',
             transition: 'all 0.3s ease'
@@ -260,36 +267,30 @@ export const AiEditorComponent: FC = () => {
             onTypeChange={setSelectedType}
             lastMessage={lastMessage}
             setLastMessage={setLastMessage}
-            messageHistory={
-              messageHistory as Array<{
-                role: 'user' | 'assistant'
-                content: string
-              }>
-            }
+            setSelectedTextPosition={setSelectedTextPosition}
+            messageHistory={messageHistory as Array<{ role: 'user' | 'assistant'; content: string }>}
             setMessageHistory={setMessageHistory}
           />
         </div>
-
+  
         {/* Chat */}
         {selectedType === 'Ask AI' && (
           <div
             style={{
-              flex: 1,
+              position: 'absolute',
+              top: typeof selectedTextPosition.top === 'number' ? selectedTextPosition.top : 0,
+              left: typeof selectedTextPosition.left === 'number' ? selectedTextPosition.left + 300 : 0,
+              zIndex: 999,
+              width: '500px', 
               height: '100%',
-              marginLeft: '140px',
-              // marginRight: '10px',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              transition: 'all 0.3s ease' 
             }}
           >
             <ExpandableChatDemo
               lastMessage={lastMessage}
               setLastMessage={setLastMessage}
-              _messageHistory={
-                messageHistory as Array<{
-                  role: 'user' | 'assistant'
-                  content: string
-                }>
-              }
+              _messageHistory={messageHistory as Array<{ role: 'user' | 'assistant'; content: string }>}
               setMessageHistory={setMessageHistory}
               placeholder={placeholder || 'Type your message...'}
               lastResponse={lastResponse}
@@ -299,6 +300,7 @@ export const AiEditorComponent: FC = () => {
               onCloseChat={() => {
                 setSelectedType('')
                 setContent('')
+                setSelectedTextPosition({ visible: false })
               }}
             />
           </div>
@@ -306,6 +308,7 @@ export const AiEditorComponent: FC = () => {
       </div>
     </WrapperComponent>
   )
+  
 }
 
 const WrapperComponent = ({
