@@ -96,7 +96,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
   const [toolbarDirection, setToolbarDirection] = useState<'top' | 'bottom'>(
     'top'
   )
-  
+
   const toolbarRef = useRef<HTMLDivElement | null>(null)
 
   const updateToolbarPosition = (selectionRect: DOMRect) => {
@@ -203,7 +203,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
       setContent(selectedText)
     }
   }, [selectedText, selectedType])
-
+  
   //new fix
   useEffect(() => {
     // Kiểm tra điều kiện trước khi thực thi logic
@@ -249,27 +249,27 @@ const AiEditor: React.FC<AiEditorProps> = ({
 
   useEffect(() => {
     if (editorRef.current && !quillRef.current) {
-      quillRef.current = new Quill(editorRef.current, { theme: 'snow' })
-      quillRef.current.setText(content ? content : '')
-
+      quillRef.current = new Quill(editorRef.current, { theme: 'snow' });
+      quillRef.current.setText(content ? content : '');
+  
       quillRef.current.on('text-change', () => {
-        const updatedContent = quillRef.current!.getText()
+        const updatedContent = quillRef.current!.getText();
         if (onContentChange) {
-          onContentChange(updatedContent)
+          onContentChange(updatedContent);
         }
-      })
-
+      });
+  
       quillRef.current.on('selection-change', (range) => {
         if (range && range.length > 0) {
-          const selected = quillRef.current!.getText(range.index, range.length)
-          setSelectedText(selected.trim())
-          setSelectedIndex(range.index)
-          setShowPromptOptions(true)
-          setSelectionRange(range)
-
-          const bounds = quillRef.current!.getBounds(range.index, range.length)
-          const editorContainer = editorRef.current!.getBoundingClientRect()
-
+          const selected = quillRef.current!.getText(range.index, range.length);
+          setSelectedText(selected.trim());
+          setSelectedIndex(range.index);
+          setShowPromptOptions(true);
+          setSelectionRange(range);
+  
+          const bounds = quillRef.current!.getBounds(range.index, range.length);
+          const editorContainer = editorRef.current!.getBoundingClientRect();
+  
           const selectionRect = {
             top: bounds.top + editorContainer.top + window.scrollY,
             bottom: bounds.bottom + editorContainer.top + window.scrollY,
@@ -280,22 +280,22 @@ const AiEditor: React.FC<AiEditorProps> = ({
             x: bounds.left + editorContainer.left + window.scrollX,
             y: bounds.top + editorContainer.top + window.scrollY,
             toJSON: () => {}
-          } as DOMRect
-          updateToolbarPosition(selectionRect)
+          } as DOMRect;
+          updateToolbarPosition(selectionRect);
         } else if (selectedType === 'Ask AI') {
-          setShowPromptOptions(false)
-          setSelectedText('')
-          setSelectedPrompt('')
-          setSelectedType('')
+          setShowPromptOptions(false);
+          setSelectedText('');
+          setSelectedPrompt('');
+          setSelectedType('');
         } else if (range && range.length === 0) {
-          setShowPromptOptions(false)
-          setSelectedPrompt('')
-          setSelectedText('')
-          setSelectedType('')
+          setShowPromptOptions(false);
+          setSelectedPrompt('');
+          setSelectedText('');
+          setSelectedType('');
         }
-      })
+      });
     }
-  }, [content])
+  }, [content, selectedType]);
 
   // Listen for aiResult changes
   useEffect(() => {
@@ -329,30 +329,50 @@ const AiEditor: React.FC<AiEditorProps> = ({
   }
 
   const handlePromptSelect = (prompt: string) => {
-    setSelectedPrompt(prompt)
-    const promptContent = `${selectedType}: ${prompt}`
-
-    console.log('[handlePromptSelect]', { selectedType, prompt, promptContent })
-
-    if (selectedType === 'Ask AI') {
-      setIsLoading(false)
+    console.log('[handlePromptSelect] Start', {
+      selectedType,
+      previousSelectionRange: previousSelectionRangeRef.current
+    });
+  
+    if (previousSelectionRangeRef.current && quillRef.current) {
+      const { index, length } = previousSelectionRangeRef.current;
+      console.log('[handlePromptSelect] Clearing highlight at', { index, length });
+      quillRef.current.formatText(index, length, { background: '' }); 
+      previousSelectionRangeRef.current = null; 
     } else {
-      setIsLoading(true)
-    }
+      console.log('[handlePromptSelect] No highlight to clear');
+    }  
 
+    setSelectedPrompt(prompt);
+    setIsLoading(true);
+    const promptContent = `${selectedType}: ${prompt}`;
+  
+    console.log('[handlePromptSelect]', {
+      selectedType,
+      prompt,
+      promptContent
+    });
+  
+    if (selectedType === 'Ask AI') {
+      setIsLoading(false);
+    } else {
+      setIsLoading(true);
+    }
+  
     if (quillRef.current && selectionRange) {
-      quillRef.current.setSelection(selectionRange)
+      quillRef.current.setSelection(selectionRange.index, selectionRange.length);
     }
-
+  
     onProcess({
       selectedContent: selectedText,
       selectedIndex,
       promptContent
-    })
-
-    setShowAIResult(false)
-    setShowPromptOptions(false) // Close the dropdown after selection
-  }
+    });
+  
+    setShowAIResult(false);
+    setShowPromptOptions(false);
+  };
+  
 
   const handleConfirm = () => {
     if (quillRef.current && aiResult) {
@@ -400,64 +420,43 @@ const AiEditor: React.FC<AiEditorProps> = ({
     }
   }, [toolbarPosition])
 
-  // useEffect(() => {
-  //   const previousContentRef = useRef<string>('');
+  // const previousContentRef = useRef<string>('');
+  const previousSelectionRangeRef = useRef<RangeStatic | null>(null);
 
-  //   if (selectedType === 'Ask AI' && quillRef.current) {
-  //     const editorText = quillRef.current.getText()
+// useEffect(() => {
+//   if (!quillRef.current) return;
 
-  //     if (content && content.trim() !== '') {
-  //       const matchIndex = editorText.indexOf(content.trim())
+//   const quill = quillRef.current;
 
-  //       if (matchIndex !== -1) {
-  //         // Highlight text bằng formatText
-  //         quillRef.current.formatText(matchIndex, content.trim().length, {
-  //           background: '#FFEB3B' // Màu vàng highlight
-  //         })
+//   // ❗ Clear highlight text cũ (nếu có vùng cũ)
+//   if (previousSelectionRangeRef.current) {
+//     const { index, length } = previousSelectionRangeRef.current;
+//     quill.formatText(index, length, { background: '' });
+//   }
 
-  //         // Cập nhật selection để user thấy rõ vùng được chọn
-  //         quillRef.current.setSelection(matchIndex, content.trim().length)
-  //       }
-  //     } if (!content || content.trim() === ''){ {
-  //         background: '' // Bỏ màu nền
-  //       }
-  //     } else {
-  //       quillRef.current.formatText(0, editorText.length, {
-  //         background: '' // Bỏ màu nền
-  //       })
-  //     }
-  //   }
-  // }, [selectedType, content])
-  const previousContentRef = useRef<string>(''); // Lưu trữ giá trị trước đó của content
+//   // ❗ Nếu có vùng chọn mới và selectedType === 'Ask AI' thì highlight mới
+//   if (selectionRange && selectedType === 'Ask AI') {
+//     quill.formatText(selectionRange.index, selectionRange.length, {
+//       background: '#FFEB3B'
+//     });
+//   }
 
-  useEffect(() => {
-    if (selectedType !== 'Ask AI' || !quillRef.current) return
+//   // ❗ Cập nhật vùng chọn hiện tại cho lần sau
+//   previousSelectionRangeRef.current = selectionRange;
+// }, [selectionRange, selectedType]);
 
-    const quill = quillRef.current
-    const editorText = quill.getText()
+useEffect(() => {
+  if (!quillRef.current) return;
 
-    const trimmedContent = content?.trim() || ''
+  const quill = quillRef.current;
 
-    // Nếu content thay đổi → clear toàn bộ highlight trước
-    if (previousContentRef.current !== trimmedContent) {
-      quill.formatText(0, editorText.length, { background: '' })
-    }
-
-    // Nếu content hợp lệ → highlight
-    if (trimmedContent !== '') {
-      const matchIndex = editorText.indexOf(trimmedContent)
-
-      if (matchIndex !== -1) {
-        quill.formatText(matchIndex, trimmedContent.length, {
-          background: '#FFEB3B'
-        })
-        quill.setSelection(matchIndex, trimmedContent.length)
-      }
-    }
-
-    // Cập nhật previousContent
-    previousContentRef.current = trimmedContent
-  }, [selectedType, content])
+  if (selectionRange && selectedType === 'Ask AI') {
+    quill.formatText(selectionRange.index, selectionRange.length, {
+      background: '#FFEB3B'
+    });
+    previousSelectionRangeRef.current = selectionRange;
+  }
+}, [selectionRange, selectedType]);
 
   return (
     <div className="w-full min-h-screen bg-white">
@@ -472,7 +471,11 @@ const AiEditor: React.FC<AiEditorProps> = ({
             ref={toolbarRef}
             className="absolute z-50 bg-white border rounded-xl shadow-xl"
             style={{
-              top: `${isLoading && selectedType !== 'Ask AI' ? toolbarPosition.top : toolbarPosition.top}px`,
+              top: `${
+                isLoading && selectedType !== 'Ask AI'
+                  ? toolbarPosition.top
+                  : toolbarPosition.top
+              }px`,
               left: `${toolbarPosition.left}px`
             }}
           >
@@ -545,7 +548,11 @@ const AiEditor: React.FC<AiEditorProps> = ({
                                     disabled={isDisabled}
                                     className={`rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-gray-100 max-h-48 overflow-y-auto ${
                                       isActive ? 'bg-blue-50 text-blue-600' : ''
-                                    } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    } ${
+                                      isDisabled
+                                        ? 'opacity-50 cursor-not-allowed'
+                                        : ''
+                                    }`}
                                   >
                                     {isLoading &&
                                     isActive &&
@@ -574,7 +581,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
                         Generating suggestion...
                       </span>
                     </div>
-                  )}
+                  )} 
                 </div>
               )}
             </div>

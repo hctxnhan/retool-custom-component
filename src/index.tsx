@@ -5,12 +5,6 @@ import { Retool } from '@tryretool/custom-component-support'
 import { Button } from './components/ui/button'
 import AiEditor from './components/ui/AiEditor'
 import { ExpandableChatDemo } from './components/ui/demo'
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem
-} from './components/ui/dropdown-menu'
 
 export const NhanTestComponent: FC = () => {
   const [name, _setName] = Retool.useStateString({
