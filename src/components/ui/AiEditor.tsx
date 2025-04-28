@@ -206,39 +206,48 @@ const AiEditor: React.FC<AiEditorProps> = ({
   
   //new fix
   useEffect(() => {
-    // Kiểm tra điều kiện trước khi thực thi logic
     if (selectedText && selectedType === 'Ask AI') {
       const handleSelectionChange = () => {
-        if (!quillRef.current || !setSelectedTextPosition) {
-          return
-        }
-        const selection = quillRef.current.getSelection()
-        if (selection && selection.length > 0) {
-          const bounds = quillRef.current.getBounds(selection.index)  
-          const editorElement = editorRef.current
+        console.log('Selection change event triggered');
+        if (!quillRef.current || !setSelectedTextPosition) return;
+  
+        const selection = quillRef.current.getSelection();
+        console.log('Selection:', selection);
+  
+        if (selection && selection.index !== null && selection.length > 0) {
+          const bounds = quillRef.current.getBounds(selection.index);
+          console.log('Bounds:', bounds);
+          
+          const editorElement = editorRef.current;
           if (editorElement) {
-            const rect = editorElement.getBoundingClientRect()
+            const rect = editorElement.getBoundingClientRect();
             const position = {
               top: rect.top + bounds.top + window.scrollY,
               left: rect.left + bounds.left + window.scrollX
-            }  
-            setSelectedTextPosition(position)
+            };
+            console.log('hihi', position);
+            setSelectedTextPosition(position);
           }
         }
-      }
+      };
   
-      const quill = quillRef.current
+      const quill = quillRef.current;
       if (quill) {
-        quill.on('selection-change', handleSelectionChange)
+        console.log('Quill is ready');
+        quill.on('selection-change', handleSelectionChange);
+      } else {
+        console.log('Quill is not available');
       }
   
       return () => {
+        const quill = quillRef.current;
         if (quill) {
-          quill.off('selection-change', handleSelectionChange)
+          console.log('Cleaning up event listener');
+          quill.off('selection-change', handleSelectionChange);
         }
-      }
+      };
     }
-  }, [setSelectedTextPosition, selectedText, selectedType])  
+  }, [selectedText, selectedType, setSelectedTextPosition]);  
 
   useEffect(() => {
     document.addEventListener('mouseup', handleTextSelection)
@@ -249,7 +258,13 @@ const AiEditor: React.FC<AiEditorProps> = ({
 
   useEffect(() => {
     if (editorRef.current && !quillRef.current) {
-      quillRef.current = new Quill(editorRef.current, { theme: 'snow' });
+      quillRef.current = new Quill(editorRef.current, {
+        theme: 'snow'
+      });
+      const quillToolbar = document.querySelector('.ql-toolbar');
+    if (quillToolbar) {
+      quillToolbar.classList.add('fixed', 'top-0', 'left-0', 'w-full', 'z-50', 'bg-white');
+    }
       quillRef.current.setText(content ? content : '');
   
       quillRef.current.on('text-change', () => {
@@ -329,18 +344,12 @@ const AiEditor: React.FC<AiEditorProps> = ({
   }
 
   const handlePromptSelect = (prompt: string) => {
-    console.log('[handlePromptSelect] Start', {
-      selectedType,
-      previousSelectionRange: previousSelectionRangeRef.current
-    });
-  
     if (previousSelectionRangeRef.current && quillRef.current) {
       const { index, length } = previousSelectionRangeRef.current;
-      console.log('[handlePromptSelect] Clearing highlight at', { index, length });
       quillRef.current.formatText(index, length, { background: '' }); 
       previousSelectionRangeRef.current = null; 
     } else {
-      console.log('[handlePromptSelect] No highlight to clear');
+      console.log('No highlight to clear');
     }  
 
     setSelectedPrompt(prompt);
@@ -420,35 +429,19 @@ const AiEditor: React.FC<AiEditorProps> = ({
     }
   }, [toolbarPosition])
 
-  // const previousContentRef = useRef<string>('');
   const previousSelectionRangeRef = useRef<RangeStatic | null>(null);
-
-// useEffect(() => {
-//   if (!quillRef.current) return;
-
-//   const quill = quillRef.current;
-
-//   // ❗ Clear highlight text cũ (nếu có vùng cũ)
-//   if (previousSelectionRangeRef.current) {
-//     const { index, length } = previousSelectionRangeRef.current;
-//     quill.formatText(index, length, { background: '' });
-//   }
-
-//   // ❗ Nếu có vùng chọn mới và selectedType === 'Ask AI' thì highlight mới
-//   if (selectionRange && selectedType === 'Ask AI') {
-//     quill.formatText(selectionRange.index, selectionRange.length, {
-//       background: '#FFEB3B'
-//     });
-//   }
-
-//   // ❗ Cập nhật vùng chọn hiện tại cho lần sau
-//   previousSelectionRangeRef.current = selectionRange;
-// }, [selectionRange, selectedType]);
 
 useEffect(() => {
   if (!quillRef.current) return;
 
   const quill = quillRef.current;
+
+  if (content === '' && previousSelectionRangeRef.current) {
+    const { index, length } = previousSelectionRangeRef.current;
+    quill.formatText(index, length, { background: '' });
+    previousSelectionRangeRef.current = null;
+    return; 
+  }
 
   if (selectionRange && selectedType === 'Ask AI') {
     quill.formatText(selectionRange.index, selectionRange.length, {
@@ -463,8 +456,8 @@ useEffect(() => {
       <div className="space-y-6 w-full h-full p-4">
         <div
           ref={editorRef}
-          className="flex-1 min-h-[calc(100vh-100px)] w-full border border-gray-300 rounded-lg shadow-sm editor-wrapper"
-        />
+          className="flex-1 min-h-[calc(100vh-100px)] w-full border border-gray-300 rounded-lg shadow-sm editor-wrapper !mt-10 ql-container ql-snow"
+          />
 
         {showPromptOptions && !showAIResult && toolbarPosition && (
           <div
