@@ -44,6 +44,10 @@ export const PropertyRow = memo(function PropertyRow({
   const level = getNestingLevel(path)
   const isObjectProperty = config.type === 'object'
   const isNestedProperty = level > 0
+  const originalValue = getNestedValue(objects[0], path)
+  const currentEditValue = getNestedValue(directEditValues, path)
+  const isActuallyModified =
+    JSON.stringify(originalValue) !== JSON.stringify(currentEditValue)
 
   return (
     <tr
@@ -62,8 +66,20 @@ export const PropertyRow = memo(function PropertyRow({
           {config.label}
         </div>
       </td>
+    
       {objects.map((obj, index) => {
+        const cellValue = getNestedValue(obj, path)
         const isSelected = selectedValues[path]?.sourceIndex === index
+        const mergedValue = getNestedValue(directEditValues, path)
+        const shouldDim = !isSelected && mergedValue === cellValue
+        let highlightItems: string[] = []
+
+        if (!isSelected && config.type === 'multiselect' && Array.isArray(cellValue) && Array.isArray(mergedValue)) {
+          highlightItems = cellValue.filter((item) => !mergedValue.includes(item))
+        }
+
+
+       
         return (
           <td
             key={index}
@@ -72,25 +88,29 @@ export const PropertyRow = memo(function PropertyRow({
               isObjectProperty && 'bg-muted/5'
             )}
             onClick={() =>
-              handleSelectValue(path, getNestedValue(obj, path), index)
+              handleSelectValue(path, cellValue, index)
             }
           >
             <div
               className={cn(
                 'p-3 py-3 rounded-lg transition-all duration-200',
-                isSelected && 'selected-cell bg-primary/10'
+                isSelected && 'selected-cell bg-primary/10',
+                shouldDim && 'opacity-30'
               )}
             >
               <CellContent
-                value={getNestedValue(obj, path)}
+                value={cellValue}
                 config={config}
                 expandedRows={expandedRows}
                 toggleRowExpansion={toggleRowExpansion}
+                highlightItems={highlightItems}
+
               />
             </div>
           </td>
         )
       })}
+
       <td
         className={cn(
           'p-1',
@@ -105,7 +125,8 @@ export const PropertyRow = memo(function PropertyRow({
           onValueChange={handleDirectEdit}
           openPopover={openPopover}
           togglePopover={togglePopover}
-          isModified={isModified}
+          isModified={isActuallyModified}
+          originalValue={getNestedValue(objects[0], path)}
         />
       </td>
     </tr>

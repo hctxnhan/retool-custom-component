@@ -40,6 +40,7 @@ interface ObjectMergerToolbarProps {
   expandedObjects: Record<string, boolean>
   toggleObjectExpansion: (path: string) => void
   handleMergeComplete: () => void
+  
 }
 
 export function ObjectMergerToolbar({
@@ -58,7 +59,7 @@ export function ObjectMergerToolbar({
   directEditValues,
   expandedObjects,
   toggleObjectExpansion,
-  handleMergeComplete
+  handleMergeComplete,
 }: ObjectMergerToolbarProps) {
   // Clear search
   const clearSearch = useCallback(() => {
@@ -92,7 +93,7 @@ export function ObjectMergerToolbar({
             )}
           </div>
 
-          <div className="inline-flex bg-muted rounded-full p-0.5 gap-0.5">
+          <div className="inline-flex bg-muted rounded-full p-0.5 gap-0.5 ">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -100,7 +101,7 @@ export function ObjectMergerToolbar({
                     variant="ghost"
                     size="sm"
                     onClick={togglePinned}
-                    className={`flex items-center gap-1 rounded-full px-3 ${isPinned ? 'bg-background text-foreground' : ''}`}
+                    className={`flex items-center gap-1 rounded-full px-3 cursor-pointer ${isPinned ? 'bg-background text-foreground' : ''}`}
                   >
                     {isPinned ? (
                       <PinOff className="h-4 w-4" />
@@ -125,7 +126,7 @@ export function ObjectMergerToolbar({
                   variant="outline"
                   size="sm"
                   onClick={resetSelections}
-                  className="flex items-center gap-1 h-9"
+                  className="flex items-center gap-1 h-9 cursor-pointer active:bg-black active:text-white"
                 >
                   <RefreshCw className="h-4 w-4" />
                   <span className="hidden sm:inline">Reset</span>
@@ -137,7 +138,7 @@ export function ObjectMergerToolbar({
 
           <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="flex items-center gap-1 h-9">
+              <Button size="sm" className="flex items-center gap-1 h-9 cursor-pointer ">
                 <Eye className="h-4 w-4" />
                 <span>Review & Merge</span>
               </Button>

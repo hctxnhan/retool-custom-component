@@ -16,7 +16,6 @@ interface PropertyReviewProps {
   level?: number
 }
 
-// Use memo to prevent unnecessary re-renders
 export const PropertyReview = memo(function PropertyReview({
   config,
   directEditValues,
@@ -30,20 +29,22 @@ export const PropertyReview = memo(function PropertyReview({
 
   if (config.type === 'object' && config.properties) {
     return (
-      <div className="mb-1.5">
+      <div className="mb-2">
         <Collapsible
           open={isExpanded}
           onOpenChange={() => toggleObjectExpansion(path)}
         >
-          <CollapsibleTrigger className="flex items-center w-full text-left px-2 py-1.5 hover:bg-muted/30 rounded-md transition-colors">
+          <CollapsibleTrigger className="flex items-center w-full text-left px-2 py-1 hover:bg-muted/30 rounded-md transition-colors">
             {isExpanded ? (
-              <ChevronDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <ChevronDown className="h-4 w-4 mr-2 text-muted-foreground" />
             ) : (
-              <ChevronRight className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <ChevronRight className="h-4 w-4 mr-2 text-muted-foreground" />
             )}
-            <span className="font-medium text-sm">{config.label}</span>
+            <span className="font-semibold text-base">
+              {config.label}
+            </span>
           </CollapsibleTrigger>
-          <CollapsibleContent className="pl-4 mt-1 space-y-1">
+          <CollapsibleContent className="pl-4 mt-1">
             {config.properties.map((prop) => (
               <PropertyReview
                 key={prop.path || prop.propertyKey}
@@ -61,20 +62,19 @@ export const PropertyReview = memo(function PropertyReview({
   }
 
   return (
-    <div className="flex flex-col mb-1.5 px-2 py-1.5 hover:bg-muted/30 rounded-md transition-colors">
-      <div className="text-sm text-muted-foreground font-medium">
-        {config.label}
+    <div className="flex justify-between items-start px-2 py-2 border-b border-border">
+      <div className="text-sm font-medium text-foreground">{config.label}</div>
+      <div className="text-right text-sm max-w-[60%] break-words">
+        {renderFormattedValue(value, config)}
       </div>
-      <div className="mt-0.5">{renderFormattedValue(value, config)}</div>
     </div>
   )
 })
 
-// Format values for the review panel
 function renderFormattedValue(value: any, config: PropertyConfig) {
-  if (value === undefined || value === null) {
+  if (value === undefined || value === null || value === '') {
     return (
-      <span className="text-muted-foreground/70 text-sm italic">Empty</span>
+      <span className="text-muted-foreground italic">No data</span>
     )
   }
 
@@ -85,34 +85,27 @@ function renderFormattedValue(value: any, config: PropertyConfig) {
           href={value}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-primary text-sm flex items-center hover:underline transition-colors"
+          className="text-primary hover:underline flex items-center justify-end gap-1"
+
         >
-          {value.toString()}
-          <ExternalLink className="ml-1 h-3 w-3 opacity-70" />
+          <span className="truncate">{value.toString()}</span>
+          <ExternalLink className="h-4 w-4 opacity-70" />
         </a>
       )
     case 'checkbox':
       return value ? (
-        <div className="flex items-center text-sm">
-          <Check className="h-3.5 w-3.5 mr-1.5 text-primary" /> Yes
-        </div>
+        <span className="text-green-600 font-semibold">✅ Yes</span>
       ) : (
-        <div className="flex items-center text-sm text-muted-foreground">
-          No
-        </div>
+        <span className="text-muted-foreground font-semibold">❌ No</span>
       )
     case 'select':
     case 'radio':
       const option = config.options?.find((opt) => opt.value === value)
-      return (
-        <div className="text-sm">
-          {option ? option.label : value?.toString() || ''}
-        </div>
-      )
+      return <>{option ? option.label : value?.toString()}</>
     case 'multiselect':
       if (Array.isArray(value) && value.length > 0) {
         return (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap justify-end gap-1">
             {value.map((v) => {
               const option = config.options?.find((opt) => opt.value === v)
               return (
@@ -125,23 +118,17 @@ function renderFormattedValue(value: any, config: PropertyConfig) {
         )
       }
       return (
-        <span className="text-muted-foreground/70 text-sm italic">
-          None selected
-        </span>
+        <span className="text-muted-foreground italic">None selected</span>
       )
     case 'date':
-      return value ? (
-        <div className="text-sm">{new Date(value).toLocaleDateString()}</div>
-      ) : (
-        ''
-      )
+      return <>{new Date(value).toLocaleDateString()}</>
     case 'textarea':
       return (
-        <div className="text-sm whitespace-pre-wrap bg-muted/20 p-2 rounded-sm">
+        <div className="whitespace-pre-wrap bg-muted/20 p-2 rounded-md">
           {value.toString()}
         </div>
       )
     default:
-      return <div className="text-sm">{value.toString()}</div>
+      return <>{value.toString()}</>
   }
 }

@@ -12,6 +12,7 @@
 /* Table styles */
 .table-wrapper {
   overflow-x: auto;
+  position: relative;
 }
 
 /* Additional styles for pinned column */
@@ -21,4 +22,42 @@
   z-index: 10;
   background-color: var(--background);
   box-shadow: -2px 0 5px rgba(0, 0, 0, 0.05);
+}
+
+/* Resizer styles */
+.column-resizer {
+  cursor: col-resize;
+  user-select: none;
+  background: transparent;
+  transition: background 0.2s;
+  width: 8px;
+  z-index: 12;
+}
+
+.column-resizer:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+th {
+  position: relative;
+}
+
+th .column-resizer {
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure columns have minimum width */
+.min-width-column {
+  min-width: 150px !important;
+}
+
+/* Ensure table layout is fixed for consistent column sizing */
+table {
+  table-layout: fixed;
 }

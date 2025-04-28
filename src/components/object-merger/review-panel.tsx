@@ -15,6 +15,7 @@ import { Code2, Eye } from 'lucide-react'
 import React, { memo } from 'react'
 import { PropertyReview } from './property-review'
 import { unflattenObject } from '@/lib/object-merger-utils'
+import { WrapperComponent } from '@/retool-components/wrapper-component'
 
 interface ReviewPanelProps {
   configuration: PropertyConfig[]
@@ -31,7 +32,7 @@ export const ReviewPanel = memo(function ReviewPanel({
   expandedObjects,
   toggleObjectExpansion,
   onClose,
-  onConfirm
+  onConfirm,
 }: ReviewPanelProps) {
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -141,9 +142,11 @@ export const ReviewPanel = memo(function ReviewPanel({
         >
           Cancel
         </Button>
+        
         <Button
+          variant="default"
           onClick={handleConfirm}
-          className="min-w-[100px] transition-all duration-200"
+          className="min-w-[100px] transition-all duration-200 "
           disabled={isLoading}
           size="sm"
         >

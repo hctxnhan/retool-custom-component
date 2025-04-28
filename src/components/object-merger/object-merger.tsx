@@ -1,7 +1,6 @@
 'use client'
 
 import type React from 'react'
-
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   ChevronDown,
@@ -45,7 +44,7 @@ interface ObjectMergerProps {
 export default function ObjectMerger({
   objects,
   configuration,
-  onMergeComplete
+  onMergeComplete,
 }: ObjectMergerProps) {
   // Process configuration once on mount or when configuration changes
   const [processedConfig, setProcessedConfig] = useState<PropertyConfig[]>([])
@@ -53,7 +52,24 @@ export default function ObjectMerger({
   const [filteredConfig, setFilteredConfig] = useState<PropertyConfig[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [allExpanded, setAllExpanded] = useState(true)
-  const [isPinned, setIsPinned] = useState(false)
+  const [isPinned, setIsPinned] = useState(true)
+
+  // State
+  const [selectedValues, setSelectedValues] = useState<Record<string, any>>({})
+  const [directEditValues, setDirectEditValues] = useState<Record<string, any>>({})
+  const [isReviewOpen, setIsReviewOpen] = useState(false)
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
+  const [expandedObjects, setExpandedObjects] = useState<Record<string, boolean>>({})
+  const [openPopover, setOpenPopover] = useState<Record<string, boolean>>({})
+  const [finalColumnWidth, setFinalColumnWidth] = useState(300)
+  const [isResizing, setIsResizing] = useState(false)
+  const [modifiedValues, setModifiedValues] = useState<Record<string, boolean>>({})
+  const resizeStartX = useRef(0)
+  const resizeStartWidth = useRef(0)
+  const initializedRef = useRef(false)
+  const tableHeaderRef = useRef<HTMLTableSectionElement>(null)
+  const tableWrapperRef = useRef<HTMLDivElement>(null)
+  const rafId = useRef<number | null>(null)
 
   // Process configuration only when it changes
   useEffect(() => {
@@ -79,36 +95,9 @@ export default function ObjectMerger({
     setFilteredConfig(filtered)
   }, [searchTerm, flatConfig])
 
-  // State
-  const [selectedValues, setSelectedValues] = useState<Record<string, any>>({})
-  const [directEditValues, setDirectEditValues] = useState<Record<string, any>>(
-    {}
-  )
-  const [isReviewOpen, setIsReviewOpen] = useState(false)
-  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
-  const [expandedObjects, setExpandedObjects] = useState<
-    Record<string, boolean>
-  >({})
-  const [openPopover, setOpenPopover] = useState<Record<string, boolean>>({})
-  const [finalColumnWidth, setFinalColumnWidth] = useState(300)
-  const [isResizing, setIsResizing] = useState(false)
-  const [modifiedValues, setModifiedValues] = useState<Record<string, boolean>>(
-    {}
-  )
-  const resizeStartX = useRef(0)
-  const resizeStartWidth = useRef(0)
-  const initializedRef = useRef(false)
-  const tableHeaderRef = useRef<HTMLTableSectionElement>(null)
-  const tableWrapperRef = useRef<HTMLDivElement>(null)
-
-  // Initialize selected values on component mount or when objects/flatConfig change
+  // Initialize selected values
   useEffect(() => {
-    // Skip if no objects or flatConfig not ready yet
-    if (
-      objects.length === 0 ||
-      flatConfig.length === 0 ||
-      initializedRef.current
-    ) {
+    if (objects.length === 0 || flatConfig.length === 0 || initializedRef.current) {
       return
     }
 
@@ -118,10 +107,7 @@ export default function ObjectMerger({
     flatConfig.forEach((config) => {
       if (config.path) {
         const value = getNestedValue(objects[0], config.path)
-        initialValues[config.path] = {
-          value,
-          sourceIndex: 0
-        }
+        initialValues[config.path] = { value, sourceIndex: 0 }
         initialDirectValues[config.path] = value
       }
     })
@@ -138,30 +124,39 @@ export default function ObjectMerger({
 
   // Handle mouse events for resizing
   useEffect(() => {
-    if (!isResizing) return
-
+    if (!isResizing) return;
+  
     const handleMouseMove = (e: MouseEvent) => {
-      const delta = e.clientX - resizeStartX.current
-      const newWidth = Math.max(300, resizeStartWidth.current + delta)
-      setFinalColumnWidth(newWidth)
-    }
-
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+      
+      rafId.current = requestAnimationFrame(() => {
+        const delta = e.clientX - resizeStartX.current;
+        const newWidth = Math.max(150, resizeStartWidth.current - delta);  // Điều chỉnh theo hướng trái
+  
+        setFinalColumnWidth(newWidth);
+      });
+    };
+  
     const handleMouseUp = () => {
-      setIsResizing(false)
-    }
-
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-
+      setIsResizing(false);
+      document.body.style.cursor = 'auto';
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+    };
+  
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [isResizing])
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+    };
+  }, [isResizing]);
+  
+  
 
-  // We're now using CSS for sticky header positioning instead of JavaScript
+  // Handle toolbar height for sticky header
   useEffect(() => {
-    // Calculate and set the toolbar height CSS variable for proper sticky header positioning
     const setToolbarHeight = () => {
       const toolbar = document.querySelector('.object-merger-toolbar')
       if (toolbar) {
@@ -179,41 +174,39 @@ export default function ObjectMerger({
   }, [])
 
   // Start resizing
-  const startResize = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      resizeStartX.current = e.clientX
-      resizeStartWidth.current = finalColumnWidth
-      setIsResizing(true)
-    },
-    [finalColumnWidth]
-  )
-
+  
+  const startResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Lưu vị trí bắt đầu từ điểm bên phải
+    resizeStartX.current = e.clientX;
+    resizeStartWidth.current = finalColumnWidth;
+  
+    setIsResizing(true);
+    document.body.style.cursor = 'col-resize';
+  }, [finalColumnWidth]);
+  
   // Handle selecting a value for a specific property
   const handleSelectValue = useCallback(
     (path: string, value: any, sourceIndex: number) => {
-      // Deep copy the value to avoid reference issues
       const valueCopy =
         typeof value === 'object' && value !== null
           ? JSON.parse(JSON.stringify(value))
           : value
 
-      // First, update the selected value for the clicked path
       setSelectedValues((prev) => {
         const newValues = { ...prev }
         newValues[path] = { value: valueCopy, sourceIndex }
 
-        // If this is an object type, we need to update all nested properties too
         const config = flatConfig.find((c) => c.path === path)
         if (config?.type === 'object' && config.properties) {
-          // Find all nested properties in flatConfig that start with this path
           flatConfig.forEach((nestedConfig) => {
             if (
               nestedConfig.path &&
               nestedConfig.path !== path &&
               nestedConfig.path.startsWith(`${path}.`)
             ) {
-              // Get the nested value from the selected object and create a deep copy
               const nestedValue = getNestedValue(
                 objects[sourceIndex],
                 nestedConfig.path
@@ -234,21 +227,16 @@ export default function ObjectMerger({
         return newValues
       })
 
-      // Also update the direct edit value
       setDirectEditValues((prev) => {
         let newValues = setNestedValue({ ...prev }, path, valueCopy)
-
-        // If this is an object type, we need to update all nested properties too
         const config = flatConfig.find((c) => c.path === path)
         if (config?.type === 'object' && config.properties) {
-          // Find all nested properties in flatConfig that start with this path
           flatConfig.forEach((nestedConfig) => {
             if (
               nestedConfig.path &&
               nestedConfig.path !== path &&
               nestedConfig.path.startsWith(`${path}.`)
             ) {
-              // Get the nested value from the selected object and create a deep copy
               const nestedValue = getNestedValue(
                 objects[sourceIndex],
                 nestedConfig.path
@@ -270,7 +258,6 @@ export default function ObjectMerger({
         return newValues
       })
 
-      // Mark as modified
       setModifiedValues((prev) => ({
         ...prev,
         [path]: true
@@ -291,21 +278,13 @@ export default function ObjectMerger({
       flatConfig.forEach((config) => {
         if (config.path) {
           const value = getNestedValue(objects[sourceIndex], config.path)
-          // Create a deep copy of the value to avoid reference issues
           const valueCopy =
             typeof value === 'object' && value !== null
               ? JSON.parse(JSON.stringify(value))
               : value
 
-          newValues[config.path] = {
-            value: valueCopy,
-            sourceIndex
-          }
-          newDirectValues = setNestedValue(
-            newDirectValues,
-            config.path,
-            valueCopy
-          )
+          newValues[config.path] = { value: valueCopy, sourceIndex }
+          newDirectValues = setNestedValue(newDirectValues, config.path, valueCopy)
           newModifiedValues[config.path] = true
         }
       })
@@ -319,28 +298,17 @@ export default function ObjectMerger({
 
   // Handle direct edit of a value
   const handleDirectEdit = useCallback((path: string, value: any) => {
-    // Create a deep copy of the value to avoid reference issues
     const valueCopy =
       typeof value === 'object' && value !== null
         ? JSON.parse(JSON.stringify(value))
         : value
 
-    setDirectEditValues((prev) => {
-      return setNestedValue({ ...prev }, path, valueCopy)
-    })
-
-    // Clear the selection since we're directly editing
-    // Use -1 to indicate it's a direct edit rather than a selection from an object
+    setDirectEditValues((prev) => setNestedValue({ ...prev }, path, valueCopy))
     setSelectedValues((prev) => ({
       ...prev,
       [path]: { value: valueCopy, sourceIndex: -1 }
     }))
-
-    // Mark as modified
-    setModifiedValues((prev) => ({
-      ...prev,
-      [path]: true
-    }))
+    setModifiedValues((prev) => ({ ...prev, [path]: true }))
   }, [])
 
   // Toggle row expansion for multiline content
@@ -370,7 +338,6 @@ export default function ObjectMerger({
   // Handle completing the merge
   const handleMergeComplete = useCallback(() => {
     if (onMergeComplete) {
-      // Unflatten the object before returning it
       const unflattenedResult = unflattenObject(directEditValues)
       onMergeComplete(unflattenedResult)
     }
@@ -402,10 +369,7 @@ export default function ObjectMerger({
     flatConfig.forEach((config) => {
       if (config.path) {
         const value = getNestedValue(objects[0], config.path)
-        initialValues[config.path] = {
-          value,
-          sourceIndex: 0
-        }
+        initialValues[config.path] = { value, sourceIndex: 0 }
         initialDirectValues[config.path] = value
       }
     })
@@ -426,9 +390,7 @@ export default function ObjectMerger({
   }, [])
 
   if (objects.length === 0) {
-    return (
-      <div className="text-center p-4">No objects provided for comparison</div>
-    )
+    return <div className="text-center p-4">No objects provided for comparison</div>
   }
 
   if (flatConfig.length === 0) {
@@ -463,15 +425,12 @@ export default function ObjectMerger({
           <colgroup>
             <col className="min-width-column" style={{ width: '250px' }} />
             {objects.map((_, i) => (
-              <col
-                key={i}
-                className="min-width-column"
-                style={{ width: '250px' }}
-              />
+              <col key={i} className="min-width-column" style={{ width: '250px' }} />
             ))}
             <col
               className="min-width-column"
               style={{ width: `${finalColumnWidth}px` }}
+              data-testid="final-column"
             />
           </colgroup>
           <thead ref={tableHeaderRef} className="bg-muted/50">
@@ -487,10 +446,7 @@ export default function ObjectMerger({
                 </div>
               </th>
               {objects.map((_, index) => (
-                <th
-                  key={index}
-                  className="p-2 text-center font-medium border-b"
-                >
+                <th key={index} className="p-2 text-center font-medium border-b">
                   <div className="flex flex-col items-center">
                     <div className="flex items-center gap-1.5 mb-1">
                       <div className="object-count-badge">{index + 1}</div>
@@ -511,6 +467,15 @@ export default function ObjectMerger({
                 className={`p-2 text-center font-medium border-b relative ${isPinned ? 'pinned-column' : ''}`}
               >
                 <div className="flex justify-between items-center">
+                  <div
+                    className="absolute left-0 top-0 bottom-0 column-resizer flex items-center justify-center"
+                    onMouseDown={startResize}
+                    data-testid="resizer-final"
+                  >
+                    <div className="h-full w-4 flex items-center justify-center">
+                      <GripVertical className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </div>
                   <span className="flex-grow text-center font-medium">
                     <div className="flex flex-col items-center">
                       <span className="text-sm">Merged Result</span>
@@ -519,14 +484,6 @@ export default function ObjectMerger({
                       </span>
                     </div>
                   </span>
-                  <div
-                    className="absolute right-0 top-0 bottom-0 column-resizer flex items-center justify-center"
-                    onMouseDown={startResize}
-                  >
-                    <div className="h-full w-4 flex items-center justify-center">
-                      <GripVertical className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </div>
                 </div>
               </th>
             </tr>
@@ -538,8 +495,7 @@ export default function ObjectMerger({
                   colSpan={objects.length + 2}
                   className="p-8 text-center text-muted-foreground"
                 >
-                  No properties match your search. Try adjusting your search
-                  term.
+                  No properties match your search. Try adjusting your search term.
                 </td>
               </tr>
             ) : (
@@ -556,9 +512,7 @@ export default function ObjectMerger({
                   handleSelectValue={handleSelectValue}
                   handleDirectEdit={handleDirectEdit}
                   directEditValues={directEditValues}
-                  isModified={
-                    !!modifiedValues[config.path || config.propertyKey]
-                  }
+                  isModified={!!modifiedValues[config.path || config.propertyKey]}
                   allExpanded={allExpanded}
                   isPinned={isPinned}
                 />
@@ -568,13 +522,10 @@ export default function ObjectMerger({
         </table>
       </div>
 
-      {/* Status indicator */}
       <div className="mt-3 flex justify-between items-center text-xs text-muted-foreground px-1">
         <div>
           {Object.keys(modifiedValues).length > 0 ? (
-            <span>
-              {Object.keys(modifiedValues).length} properties modified
-            </span>
+            <span>{Object.keys(modifiedValues).length} properties modified</span>
           ) : (
             <span>No changes made yet</span>
           )}
