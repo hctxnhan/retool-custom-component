@@ -42,6 +42,7 @@ const configOptions: Record<string, string[]> = {
     'Make more descriptive'
   ],
   Translate: [
+    
     'English',
     'French',
     'German',
@@ -72,7 +73,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
   onTypeChange,
   onContentChange,
   setContent,
-  setSelectedTextPosition
+  setSelectedTextPosition,
 }) => {
   const editorRef = useRef<HTMLDivElement>(null)
   const quillRef = useRef<Quill | null>(null)
@@ -104,36 +105,40 @@ const AiEditor: React.FC<AiEditorProps> = ({
     const win = editorRef.current?.ownerDocument?.defaultView || window
     const viewportHeight = win.innerHeight
     const viewportWidth = win.innerWidth
-
     const toolbarHeight = toolbarRef.current?.offsetHeight || 250
     const toolbarWidth = toolbarRef.current?.offsetWidth || 300
+    if (selectionRect.top > 0 && selectionRect.top < viewportHeight) {
+      const spaceBelow = viewportHeight - selectionRect.bottom
+      const spaceAbove = selectionRect.top
 
-    const spaceBelow = viewportHeight - selectionRect.bottom
-    const spaceAbove = selectionRect.top
+      const showAbove =
+        spaceBelow < toolbarHeight + padding &&
+        spaceAbove >= toolbarHeight + padding
 
-    const showAbove =
-      spaceBelow < toolbarHeight + padding &&
-      spaceAbove >= toolbarHeight + padding
+      let top = showAbove
+        ? selectionRect.top - toolbarHeight - padding
+        : selectionRect.bottom + padding
 
-    let top = showAbove
-      ? selectionRect.top - toolbarHeight - padding
-      : selectionRect.bottom + padding
+      let left = selectionRect.left + selectionRect.width / 2 - toolbarWidth / 2
 
-    let left = selectionRect.left + selectionRect.width / 2 - toolbarWidth / 2
+      const maxLeft = viewportWidth - toolbarWidth - padding
+      const minLeft = padding
+      left = Math.max(minLeft, Math.min(left, maxLeft))
 
-    const maxLeft = viewportWidth - toolbarWidth - padding
-    const minLeft = padding
-    left = Math.max(minLeft, Math.min(left, maxLeft))
+      const maxTop = viewportHeight - toolbarHeight - padding
+      const minTop = padding
+      top = Math.max(minTop, Math.min(top, maxTop))
+      console.log('Toolbar:', top)
 
-    const maxTop = viewportHeight - toolbarHeight - padding
-    const minTop = padding
-    top = Math.max(minTop, Math.min(top, maxTop))
+      console.log('ToolbarPosition set to:', { top, left })
 
-    console.log('ToolbarPosition set to:', { top, left })
-
-    setToolbarPosition({ top, left })
-    setToolbarDirection(showAbove ? 'top' : 'bottom')
-    setDropdownPosition(showAbove ? 'top' : 'bottom')
+      setToolbarPosition({ top, left })
+      setToolbarDirection(showAbove ? 'top' : 'bottom')
+      setDropdownPosition(showAbove ? 'top' : 'bottom')
+    }
+    else {
+      setToolbarPosition(null)
+    }
   }
 
   // Function to update selection rectangle based on current selection and editor position
@@ -145,7 +150,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
 
     const bounds = quillRef.current.getBounds(selection.index, selection.length)
 
-    const editorContainer = editorRef.current 
+    const editorContainer = editorRef.current
       .querySelector('.ql-editor')
       ?.getBoundingClientRect()
     if (!editorContainer) return
@@ -162,7 +167,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
       height: bounds.height,
       x: left,
       y: top,
-      toJSON: () => {}
+      toJSON: () => { }
     } as DOMRect
 
     console.log('updateSelectionRectangle rect:', rect)
@@ -199,20 +204,6 @@ const AiEditor: React.FC<AiEditorProps> = ({
     }
   }, [selectedText, selectedType])
 
-  // Handle viewport changes (scroll or resize)
-  useEffect(() => {
-    const handleViewportChange = () => {
-      updateSelectionRectangle()
-    }
-
-    window.addEventListener('scroll', handleViewportChange)
-    window.addEventListener('resize', handleViewportChange)
-    return () => {
-      window.removeEventListener('scroll', handleViewportChange)
-      window.removeEventListener('resize', handleViewportChange)
-    }
-  }, [selectionRange, selectedText])
-
   const handleTextSelection = () => {
     const selection = window.getSelection()
     if (!selection || selection.isCollapsed) return
@@ -220,7 +211,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
     const range = selection.getRangeAt(0)
     const rect = range.getBoundingClientRect()
 
-    updateToolbarPosition(rect)
+    updateSelectionRectangle()
     setShowPromptOptions(true)
   }
 
@@ -330,7 +321,6 @@ const AiEditor: React.FC<AiEditorProps> = ({
           setSelectedIndex(range.index)
           setShowPromptOptions(true)
           setSelectionRange(range)
-
           const bounds = quillRef.current!.getBounds(range.index, range.length)
           const editorContainer = editorRef.current!.getBoundingClientRect()
 
@@ -343,7 +333,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
             height: bounds.height,
             x: bounds.left + editorContainer.left + window.scrollX,
             y: bounds.top + editorContainer.top + window.scrollY,
-            toJSON: () => {}
+            toJSON: () => { }
           } as DOMRect
           updateToolbarPosition(selectionRect)
         } else if (selectedType === 'Ask AI') {
@@ -394,14 +384,14 @@ const AiEditor: React.FC<AiEditorProps> = ({
 
   const handlePromptSelect = (prompt: string) => {
     if (previousSelectionRangeRef.current && quillRef.current) {
+      setIsLoading(true)
       const { index, length } = previousSelectionRangeRef.current
       quillRef.current.formatText(index, length, { background: '' })
       previousSelectionRangeRef.current = null
     }
 
-    setSelectedPrompt(prompt)
-    setIsLoading(true)
     const promptContent = `${selectedType}: ${prompt}`
+    setSelectedPrompt(prompt) 
 
     console.log('[handlePromptSelect]', {
       selectedType,
@@ -427,6 +417,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
 
     setShowAIResult(false)
     setShowPromptOptions(false)
+
   }
 
   const handleConfirm = () => {
@@ -522,11 +513,10 @@ const AiEditor: React.FC<AiEditorProps> = ({
                       >
                         <div className="flex items-center gap-2">
                           <span
-                            className={`px-4 py-1 text-sm cursor-pointer ${
-                              selectedType === type
+                            className={`px-4 py-1 text-sm cursor-pointer ${selectedType === type
                                 ? 'bg-blue-100 text-blue-600'
                                 : 'text-gray-600'
-                            }`}
+                              }`}
                             onClick={() => handleTypeSelect(type)}
                           >
                             {type}
@@ -568,23 +558,21 @@ const AiEditor: React.FC<AiEditorProps> = ({
                                   isLoading &&
                                   isActive &&
                                   selectedType !== 'Ask AI'
-
+                                console.log('isDisabled', isLoading, isDisabled)
                                 return (
                                   <DropdownMenuItem
                                     key={prompt}
                                     onClick={() => handlePromptSelect(prompt)}
                                     disabled={isDisabled}
-                                    className={`rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-gray-100 max-h-48 overflow-y-auto ${
-                                      isActive ? 'bg-blue-50 text-blue-600' : ''
-                                    } ${
-                                      isDisabled
+                                    className={`rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-gray-100 max-h-48 overflow-y-auto ${isActive ? 'bg-blue-50 text-blue-600' : ''
+                                      } ${isDisabled
                                         ? 'opacity-50 cursor-not-allowed'
                                         : ''
-                                    }`}
+                                      }`}
                                   >
                                     {isLoading &&
-                                    isActive &&
-                                    selectedType !== 'Ask AI'
+                                      isActive &&
+                                      selectedType !== 'Ask AI'
                                       ? `${prompt} (Thinking...)`
                                       : prompt}
                                   </DropdownMenuItem>
