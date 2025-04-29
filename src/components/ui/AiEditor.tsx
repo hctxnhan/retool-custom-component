@@ -82,7 +82,6 @@ const AiEditor: React.FC<AiEditorProps> = ({
   const [selectedType, setSelectedType] = useState<string>('')
   const [selectedPrompt, setSelectedPrompt] = useState<string>('')
   const [selectionRange, setSelectionRange] = useState<RangeStatic | null>(null)
-  const aiBoxRef = useRef<HTMLDivElement | null>(null);
 
   const [showPromptOptions, setShowPromptOptions] = useState(false)
   const [showAIResult, setShowAIResult] = useState(false)
@@ -102,74 +101,87 @@ const AiEditor: React.FC<AiEditorProps> = ({
 
   const updateToolbarPosition = (selectionRect: DOMRect) => {
     const padding = 8;
-    const viewportHeight = window.innerHeight;
-    const viewportWidth = window.innerWidth;
-  
-    const toolbarHeight = toolbarRef.current?.offsetHeight || 250;
-    const toolbarWidth = toolbarRef.current?.offsetWidth || 300;
-  
-    const spaceBelow = viewportHeight - selectionRect.bottom;
-    const spaceAbove = selectionRect.top;
-  
-    // Ưu tiên hiển thị bên dưới nếu đủ chỗ
-    const showAbove = spaceBelow < toolbarHeight + padding && spaceAbove >= toolbarHeight + padding;
-  
+    const win = editorRef.current?.ownerDocument?.defaultView || window
+    const viewportHeight = win.innerHeight
+    const viewportWidth = win.innerWidth
+
+    const toolbarHeight = toolbarRef.current?.offsetHeight || 250
+    const toolbarWidth = toolbarRef.current?.offsetWidth || 300
+
+    const spaceBelow = viewportHeight - selectionRect.bottom
+    const spaceAbove = selectionRect.top
+
+    const showAbove =
+      spaceBelow < toolbarHeight + padding &&
+      spaceAbove >= toolbarHeight + padding
+
     let top = showAbove
       ? selectionRect.top - toolbarHeight - padding
-      : selectionRect.bottom + padding;
-  
-    let left = selectionRect.left + selectionRect.width / 2 - toolbarWidth / 2;
-  
-    // Clamp vào màn hình
-    const maxLeft = viewportWidth - toolbarWidth - padding;
-    const minLeft = padding;
-    left = Math.max(minLeft, Math.min(left, maxLeft));
-  
-    const maxTop = viewportHeight - toolbarHeight - padding;
-    const minTop = padding;
-    top = Math.max(minTop, Math.min(top, maxTop));
-  
-    setToolbarPosition({ top, left });
-    setToolbarDirection(showAbove ? 'top' : 'bottom');
-    setDropdownPosition(showAbove ? 'top' : 'bottom');
-  
-    // Gán vị trí trực tiếp
-    if (toolbarRef.current) {
-      toolbarRef.current.style.position = 'fixed';
-      toolbarRef.current.style.top = `${top}px`;
-      toolbarRef.current.style.left = `${left}px`;
-      toolbarRef.current.style.visibility = 'visible';
-    }
-  };
-  
+      : selectionRect.bottom + padding
+
+    let left = selectionRect.left + selectionRect.width / 2 - toolbarWidth / 2
+
+    const maxLeft = viewportWidth - toolbarWidth - padding
+    const minLeft = padding
+    left = Math.max(minLeft, Math.min(left, maxLeft))
+
+    const maxTop = viewportHeight - toolbarHeight - padding
+    const minTop = padding
+    top = Math.max(minTop, Math.min(top, maxTop))
+
+    console.log('ToolbarPosition set to:', { top, left })
+
+    setToolbarPosition({ top, left })
+    setToolbarDirection(showAbove ? 'top' : 'bottom')
+    setDropdownPosition(showAbove ? 'top' : 'bottom')
+  }
+
   // Function to update selection rectangle based on current selection and editor position
   const updateSelectionRectangle = () => {
-    if (selectionRange && quillRef.current && editorRef.current) {
-      if (selectionRange.length === 0) {
-        console.log('No text selected. Skipping toolbar position update.')
-        return
-      }
+    if (!quillRef.current || !editorRef.current) return
 
-      const bounds = quillRef.current.getBounds(
-        selectionRange.index,
-        selectionRange.length
-      )
-      const editorContainer = editorRef.current.getBoundingClientRect()
-      const updatedSelectionRect = {
-        top: bounds.top + editorContainer.top + window.scrollY,
-        bottom: bounds.bottom + editorContainer.top + window.scrollY,
-        left: bounds.left + editorContainer.left + window.scrollX,
-        right: bounds.right + editorContainer.left + window.scrollX,
-        width: bounds.width,
-        height: bounds.height,
-        x: bounds.left + editorContainer.left + window.scrollX,
-        y: bounds.top + editorContainer.top + window.scrollY,
-        toJSON: () => {}
-      } as DOMRect
+    const selection = quillRef.current.getSelection()
+    if (!selection || selection.length === 0) return
 
-      updateToolbarPosition(updatedSelectionRect)
-    }
+    const bounds = quillRef.current.getBounds(selection.index, selection.length)
+
+    const editorContainer = editorRef.current 
+      .querySelector('.ql-editor')
+      ?.getBoundingClientRect()
+    if (!editorContainer) return
+
+    const top = bounds.top + editorContainer.top
+    const left = bounds.left + editorContainer.left
+
+    const rect: DOMRect = {
+      top,
+      bottom: top + bounds.height,
+      left,
+      right: left + bounds.width,
+      width: bounds.width,
+      height: bounds.height,
+      x: left,
+      y: top,
+      toJSON: () => {}
+    } as DOMRect
+
+    console.log('updateSelectionRectangle rect:', rect)
+    updateToolbarPosition(rect)
   }
+
+  useEffect(() => {
+    const handleViewportChange = () => {
+      updateSelectionRectangle()
+    }
+
+    window.addEventListener('scroll', handleViewportChange)
+    window.addEventListener('resize', handleViewportChange)
+
+    return () => {
+      window.removeEventListener('scroll', handleViewportChange)
+      window.removeEventListener('resize', handleViewportChange)
+    }
+  }, [])
 
   useEffect(() => {
     if (selectedText && selectedType === 'Ask AI') {
@@ -216,7 +228,6 @@ const AiEditor: React.FC<AiEditorProps> = ({
   useEffect(() => {
     if (selectedText && selectedType === 'Ask AI') {
       const handleSelectionChange = () => {
-        console.log('Selection change event triggered')
         if (!quillRef.current || !setSelectedTextPosition) return
 
         const selection = quillRef.current.getSelection()
@@ -242,10 +253,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
 
       const quill = quillRef.current
       if (quill) {
-        console.log('Quill is ready')
         quill.on('selection-change', handleSelectionChange)
-      } else {
-        console.log('Quill is not available')
       }
 
       return () => {
@@ -389,8 +397,6 @@ const AiEditor: React.FC<AiEditorProps> = ({
       const { index, length } = previousSelectionRangeRef.current
       quillRef.current.formatText(index, length, { background: '' })
       previousSelectionRangeRef.current = null
-    } else {
-      console.log('No highlight to clear')
     }
 
     setSelectedPrompt(prompt)
@@ -460,27 +466,6 @@ const AiEditor: React.FC<AiEditorProps> = ({
     }
   }, [selectedType])
 
-  // useEffect(() => {
-  //   if (toolbarRef.current && toolbarPosition) {
-  //     toolbarRef.current.scrollIntoView({
-  //       behavior: 'smooth',
-  //       block: 'nearest'
-  //     })
-  //   }
-  // }, [toolbarPosition])
-
-  // useEffect(() => {
-  //   if (toolbarRef.current && toolbarPosition) {
-  //     const rect = toolbarRef.current.getBoundingClientRect();
-  //     if (rect.top < 0 || rect.bottom > window.innerHeight) {
-  //       toolbarRef.current.scrollIntoView({
-  //         behavior: 'smooth',
-  //         block: 'center'
-  //       });
-  //     }
-  //   }
-  // }, [toolbarPosition]);  
-
   const previousSelectionRangeRef = useRef<RangeStatic | null>(null)
 
   useEffect(() => {
@@ -503,8 +488,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
     }
   }, [selectionRange, selectedType])
 
-  console.log("111", toolbarPosition?.top);
-  console.log("222", toolbarPosition?.left);
+  console.log('render toolbar', toolbarPosition)
 
   return (
     <div className="w-full min-h-screen bg-white">
@@ -517,13 +501,9 @@ const AiEditor: React.FC<AiEditorProps> = ({
         {showPromptOptions && !showAIResult && toolbarPosition && (
           <div
             ref={toolbarRef}
-            className="absolute z-50 bg-white border rounded-xl shadow-xl"
+            className="fixed z-50 bg-white border rounded-xl shadow-xl"
             style={{
-              top: `${
-                isLoading && selectedType !== 'Ask AI'
-                  ? toolbarPosition.top
-                  : toolbarPosition.top
-              }px`,
+              top: `${toolbarPosition.top}px`,
               left: `${toolbarPosition.left}px`
             }}
           >
