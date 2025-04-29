@@ -92,7 +92,6 @@ export function ObjectMergerToolbar({
               </button>
             )}
           </div>
-
           <div className="inline-flex bg-muted rounded-full p-0.5 gap-0.5 ">
             <TooltipProvider>
               <Tooltip>

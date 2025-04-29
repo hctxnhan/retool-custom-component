@@ -60,9 +60,9 @@
     "prettier": "^3.0.3"
   },
   "retoolCustomComponentLibraryConfig": {
-    "name": "ObjectMerger",
-    "label": "Object Merger",
-    "description": "Object Merger",
+    "name": "ObjectData",
+    "label": "object data",
+    "description": "",
     "entryPoint": "src/index.tsx",
     "outputPath": "dist"
   }

@@ -142,7 +142,6 @@ export const ReviewPanel = memo(function ReviewPanel({
         >
           Cancel
         </Button>
-        
         <Button
           variant="default"
           onClick={handleConfirm}
@@ -153,6 +152,7 @@ export const ReviewPanel = memo(function ReviewPanel({
           <span className={isLoading ? 'opacity-0' : 'opacity-100'}>
             Confirm
           </span>
+         
           {isLoading && (
             <span className="absolute inset-0 flex items-center justify-center">
               <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
