@@ -272,7 +272,7 @@ export const AiEditorComponent: FC = () => {
           <div
             style={{
               position: 'absolute',
-              top: typeof selectedTextPosition.top === 'number' ? selectedTextPosition.top : 0,
+              top: typeof selectedTextPosition.top === 'number' ? selectedTextPosition.top + 50 : 50,
               left: typeof selectedTextPosition.left === 'number' ? selectedTextPosition.left + 300 : 0,
               zIndex: 999,
               width: '500px', 

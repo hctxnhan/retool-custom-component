@@ -153,6 +153,11 @@ const AiEditor: React.FC<AiEditorProps> = ({
   // Function to update selection rectangle based on current selection and editor position
   const updateSelectionRectangle = () => {
     if (selectionRange && quillRef.current && editorRef.current) {
+      if (selectionRange.length === 0) {
+        console.log('No text selected. Skipping toolbar position update.');
+        return;
+      }
+  
       const bounds = quillRef.current.getBounds(
         selectionRange.index,
         selectionRange.length
@@ -169,9 +174,24 @@ const AiEditor: React.FC<AiEditorProps> = ({
         y: bounds.top + editorContainer.top + window.scrollY,
         toJSON: () => {}
       } as DOMRect
+  
       updateToolbarPosition(updatedSelectionRect)
     }
-  }
+  }  
+
+  useEffect(() => {
+    if (selectedText && selectedType === 'Ask AI') {
+      setContent(selectedText);
+      if (quillRef.current) {
+        const selection = quillRef.current.getSelection();
+        if (selection && selection.index !== null && selection.length > 0) {
+          const bounds = quillRef.current.getBounds(selection.index, selection.length);
+          console.log('Bounds:', bounds); 
+        }
+      }
+    }
+  }, [selectedText, selectedType]);
+  
 
   // Handle viewport changes (scroll or resize)
   useEffect(() => {
@@ -185,7 +205,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
       window.removeEventListener('scroll', handleViewportChange)
       window.removeEventListener('resize', handleViewportChange)
     }
-  }, [selectionRange])
+  }, [selectionRange, selectedText])
 
   const handleTextSelection = () => {
     const selection = window.getSelection()
@@ -197,12 +217,6 @@ const AiEditor: React.FC<AiEditorProps> = ({
     updateToolbarPosition(rect)
     setShowPromptOptions(true)
   }
-
-  useEffect(() => {
-    if (selectedText && selectedType === 'Ask AI') {
-      setContent(selectedText)
-    }
-  }, [selectedText, selectedType])
   
   //new fix
   useEffect(() => {
@@ -219,6 +233,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
           console.log('Bounds:', bounds);
           
           const editorElement = editorRef.current;
+          console.log("kkk", editorElement);
           if (editorElement) {
             const rect = editorElement.getBoundingClientRect();
             const position = {
@@ -247,7 +262,33 @@ const AiEditor: React.FC<AiEditorProps> = ({
         }
       };
     }
-  }, [selectedText, selectedType, setSelectedTextPosition]);  
+  }, [selectedText, selectedType, setSelectedTextPosition, selectionRange]);  
+
+  useEffect(() => {
+    const handleMouseUp = () => {
+      if (!quillRef.current || !setSelectedTextPosition) return;
+      const selection = quillRef.current.getSelection();
+      if (selection && selection.length > 0) {
+        const bounds = quillRef.current.getBounds(selection.index);
+        const editorElement = editorRef.current;
+        if (editorElement) {
+          const rect = editorElement.getBoundingClientRect();
+          const position = {
+            top: rect.top + bounds.top + window.scrollY,
+            left: rect.left + bounds.left + window.scrollX
+          };
+          setSelectedTextPosition(position);
+        }
+      }
+    };
+  
+    document.addEventListener('mouseup', handleMouseUp);
+  
+    return () => {
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [setSelectedTextPosition]);
+  
 
   useEffect(() => {
     document.addEventListener('mouseup', handleTextSelection)
@@ -310,7 +351,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
         }
       });
     }
-  }, [content, selectedType]);
+  }, [content, selectedType, selectedText, selectionRange]);
 
   // Listen for aiResult changes
   useEffect(() => {
