@@ -82,6 +82,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
   const [selectedType, setSelectedType] = useState<string>('')
   const [selectedPrompt, setSelectedPrompt] = useState<string>('')
   const [selectionRange, setSelectionRange] = useState<RangeStatic | null>(null)
+  const aiBoxRef = useRef<HTMLDivElement | null>(null);
 
   const [showPromptOptions, setShowPromptOptions] = useState(false)
   const [showAIResult, setShowAIResult] = useState(false)
@@ -100,64 +101,55 @@ const AiEditor: React.FC<AiEditorProps> = ({
   const toolbarRef = useRef<HTMLDivElement | null>(null)
 
   const updateToolbarPosition = (selectionRect: DOMRect) => {
-    const padding = 8
-    const toolbarHeight = toolbarRef.current?.offsetHeight || 100
-    const toolbarWidth = toolbarRef.current?.offsetWidth || 300
-    const dropdownHeight = 200 // Estimated max height of dropdown
-    const viewportHeight = window.innerHeight
-    const viewportWidth = window.innerWidth
-
-    // Calculate if we're near the bottom of the viewport
-    const isNearBottom =
-      selectionRect.bottom + toolbarHeight + dropdownHeight + padding >
-      viewportHeight
-    const isNearTop =
-      selectionRect.top - toolbarHeight - dropdownHeight - padding < 0
-
-    // Determine the best position for the toolbar
-    let top = selectionRect.bottom + padding
-    let left = selectionRect.left + selectionRect.width / 2 - toolbarWidth / 2
-
-    // If near bottom, position above the selection
-    if (isNearBottom) {
-      top = selectionRect.top - toolbarHeight - padding
-    }
-
-    // If near top, position below the selection
-    if (isNearTop) {
-      top = selectionRect.bottom + padding
-    }
-
-    // Ensure the toolbar stays within viewport horizontally
-    const maxLeft = viewportWidth - toolbarWidth - padding
-    const minLeft = padding
-    left = Math.max(minLeft, Math.min(left, maxLeft))
-
-    // Ensure the toolbar stays within viewport vertically
-    const maxTop = viewportHeight - toolbarHeight - padding
-    const minTop = padding
-    top = Math.max(minTop, Math.min(top, maxTop))
-
-    setToolbarPosition({ top, left })
-    setToolbarDirection(isNearBottom ? 'top' : 'bottom')
-    setDropdownPosition(isNearBottom ? 'top' : 'bottom')
-
+    const padding = 8;
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+  
+    const toolbarHeight = toolbarRef.current?.offsetHeight || 250;
+    const toolbarWidth = toolbarRef.current?.offsetWidth || 300;
+  
+    const spaceBelow = viewportHeight - selectionRect.bottom;
+    const spaceAbove = selectionRect.top;
+  
+    // Ưu tiên hiển thị bên dưới nếu đủ chỗ
+    const showAbove = spaceBelow < toolbarHeight + padding && spaceAbove >= toolbarHeight + padding;
+  
+    let top = showAbove
+      ? selectionRect.top - toolbarHeight - padding
+      : selectionRect.bottom + padding;
+  
+    let left = selectionRect.left + selectionRect.width / 2 - toolbarWidth / 2;
+  
+    // Clamp vào màn hình
+    const maxLeft = viewportWidth - toolbarWidth - padding;
+    const minLeft = padding;
+    left = Math.max(minLeft, Math.min(left, maxLeft));
+  
+    const maxTop = viewportHeight - toolbarHeight - padding;
+    const minTop = padding;
+    top = Math.max(minTop, Math.min(top, maxTop));
+  
+    setToolbarPosition({ top, left });
+    setToolbarDirection(showAbove ? 'top' : 'bottom');
+    setDropdownPosition(showAbove ? 'top' : 'bottom');
+  
+    // Gán vị trí trực tiếp
     if (toolbarRef.current) {
-      toolbarRef.current.style.position = 'fixed'
-      toolbarRef.current.style.top = `${top}px`
-      toolbarRef.current.style.left = `${left}px`
-      toolbarRef.current.style.visibility = 'visible'
+      toolbarRef.current.style.position = 'fixed';
+      toolbarRef.current.style.top = `${top}px`;
+      toolbarRef.current.style.left = `${left}px`;
+      toolbarRef.current.style.visibility = 'visible';
     }
-  }
-
+  };
+  
   // Function to update selection rectangle based on current selection and editor position
   const updateSelectionRectangle = () => {
     if (selectionRange && quillRef.current && editorRef.current) {
       if (selectionRange.length === 0) {
-        console.log('No text selected. Skipping toolbar position update.');
-        return;
+        console.log('No text selected. Skipping toolbar position update.')
+        return
       }
-  
+
       const bounds = quillRef.current.getBounds(
         selectionRange.index,
         selectionRange.length
@@ -174,24 +166,26 @@ const AiEditor: React.FC<AiEditorProps> = ({
         y: bounds.top + editorContainer.top + window.scrollY,
         toJSON: () => {}
       } as DOMRect
-  
+
       updateToolbarPosition(updatedSelectionRect)
     }
-  }  
+  }
 
   useEffect(() => {
     if (selectedText && selectedType === 'Ask AI') {
-      setContent(selectedText);
+      setContent(selectedText)
       if (quillRef.current) {
-        const selection = quillRef.current.getSelection();
+        const selection = quillRef.current.getSelection()
         if (selection && selection.index !== null && selection.length > 0) {
-          const bounds = quillRef.current.getBounds(selection.index, selection.length);
-          console.log('Bounds:', bounds); 
+          const bounds = quillRef.current.getBounds(
+            selection.index,
+            selection.length
+          )
+          console.log('Bounds:', bounds)
         }
       }
     }
-  }, [selectedText, selectedType]);
-  
+  }, [selectedText, selectedType])
 
   // Handle viewport changes (scroll or resize)
   useEffect(() => {
@@ -217,78 +211,77 @@ const AiEditor: React.FC<AiEditorProps> = ({
     updateToolbarPosition(rect)
     setShowPromptOptions(true)
   }
-  
+
   //new fix
   useEffect(() => {
     if (selectedText && selectedType === 'Ask AI') {
       const handleSelectionChange = () => {
-        console.log('Selection change event triggered');
-        if (!quillRef.current || !setSelectedTextPosition) return;
-  
-        const selection = quillRef.current.getSelection();
-        console.log('Selection:', selection);
-  
+        console.log('Selection change event triggered')
+        if (!quillRef.current || !setSelectedTextPosition) return
+
+        const selection = quillRef.current.getSelection()
+        console.log('Selection:', selection)
+
         if (selection && selection.index !== null && selection.length > 0) {
-          const bounds = quillRef.current.getBounds(selection.index);
-          console.log('Bounds:', bounds);
-          
-          const editorElement = editorRef.current;
-          console.log("kkk", editorElement);
+          const bounds = quillRef.current.getBounds(selection.index)
+          console.log('Bounds:', bounds)
+
+          const editorElement = editorRef.current
+          console.log('kkk', editorElement)
           if (editorElement) {
-            const rect = editorElement.getBoundingClientRect();
+            const rect = editorElement.getBoundingClientRect()
             const position = {
               top: rect.top + bounds.top + window.scrollY,
               left: rect.left + bounds.left + window.scrollX
-            };
-            console.log('hihi', position);
-            setSelectedTextPosition(position);
+            }
+            console.log('hihi', position)
+            setSelectedTextPosition(position)
           }
         }
-      };
-  
-      const quill = quillRef.current;
-      if (quill) {
-        console.log('Quill is ready');
-        quill.on('selection-change', handleSelectionChange);
-      } else {
-        console.log('Quill is not available');
       }
-  
+
+      const quill = quillRef.current
+      if (quill) {
+        console.log('Quill is ready')
+        quill.on('selection-change', handleSelectionChange)
+      } else {
+        console.log('Quill is not available')
+      }
+
       return () => {
-        const quill = quillRef.current;
+        const quill = quillRef.current
         if (quill) {
-          console.log('Cleaning up event listener');
-          quill.off('selection-change', handleSelectionChange);
+          console.log('Cleaning up event listener')
+          quill.off('selection-change', handleSelectionChange)
         }
-      };
+      }
     }
-  }, [selectedText, selectedType, setSelectedTextPosition, selectionRange]);  
+  }, [selectedText, selectedType, setSelectedTextPosition, selectionRange])
 
   useEffect(() => {
     const handleMouseUp = () => {
-      if (!quillRef.current || !setSelectedTextPosition) return;
-      const selection = quillRef.current.getSelection();
+      if (!quillRef.current || !setSelectedTextPosition) return
+      const selection = quillRef.current.getSelection()
       if (selection && selection.length > 0) {
-        const bounds = quillRef.current.getBounds(selection.index);
-        const editorElement = editorRef.current;
+        const bounds = quillRef.current.getBounds(selection.index)
+        const editorElement = editorRef.current
         if (editorElement) {
-          const rect = editorElement.getBoundingClientRect();
+          const rect = editorElement.getBoundingClientRect()
           const position = {
             top: rect.top + bounds.top + window.scrollY,
             left: rect.left + bounds.left + window.scrollX
-          };
-          setSelectedTextPosition(position);
+          }
+          setSelectedTextPosition(position)
         }
       }
-    };
-  
-    document.addEventListener('mouseup', handleMouseUp);
-  
+    }
+
+    document.addEventListener('mouseup', handleMouseUp)
+
     return () => {
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [setSelectedTextPosition]);
-  
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [setSelectedTextPosition])
 
   useEffect(() => {
     document.addEventListener('mouseup', handleTextSelection)
@@ -301,31 +294,38 @@ const AiEditor: React.FC<AiEditorProps> = ({
     if (editorRef.current && !quillRef.current) {
       quillRef.current = new Quill(editorRef.current, {
         theme: 'snow'
-      });
-      const quillToolbar = document.querySelector('.ql-toolbar');
-    if (quillToolbar) {
-      quillToolbar.classList.add('fixed', 'top-0', 'left-0', 'w-full', 'z-50', 'bg-white');
-    }
-      quillRef.current.setText(content ? content : '');
-  
+      })
+      const quillToolbar = document.querySelector('.ql-toolbar')
+      if (quillToolbar) {
+        quillToolbar.classList.add(
+          'fixed',
+          'top-0',
+          'left-0',
+          'w-full',
+          'z-50',
+          'bg-white'
+        )
+      }
+      quillRef.current.setText(content ? content : '')
+
       quillRef.current.on('text-change', () => {
-        const updatedContent = quillRef.current!.getText();
+        const updatedContent = quillRef.current!.getText()
         if (onContentChange) {
-          onContentChange(updatedContent);
+          onContentChange(updatedContent)
         }
-      });
-  
+      })
+
       quillRef.current.on('selection-change', (range) => {
         if (range && range.length > 0) {
-          const selected = quillRef.current!.getText(range.index, range.length);
-          setSelectedText(selected.trim());
-          setSelectedIndex(range.index);
-          setShowPromptOptions(true);
-          setSelectionRange(range);
-  
-          const bounds = quillRef.current!.getBounds(range.index, range.length);
-          const editorContainer = editorRef.current!.getBoundingClientRect();
-  
+          const selected = quillRef.current!.getText(range.index, range.length)
+          setSelectedText(selected.trim())
+          setSelectedIndex(range.index)
+          setShowPromptOptions(true)
+          setSelectionRange(range)
+
+          const bounds = quillRef.current!.getBounds(range.index, range.length)
+          const editorContainer = editorRef.current!.getBoundingClientRect()
+
           const selectionRect = {
             top: bounds.top + editorContainer.top + window.scrollY,
             bottom: bounds.bottom + editorContainer.top + window.scrollY,
@@ -336,22 +336,22 @@ const AiEditor: React.FC<AiEditorProps> = ({
             x: bounds.left + editorContainer.left + window.scrollX,
             y: bounds.top + editorContainer.top + window.scrollY,
             toJSON: () => {}
-          } as DOMRect;
-          updateToolbarPosition(selectionRect);
+          } as DOMRect
+          updateToolbarPosition(selectionRect)
         } else if (selectedType === 'Ask AI') {
-          setShowPromptOptions(false);
-          setSelectedText('');
-          setSelectedPrompt('');
-          setSelectedType('');
+          setShowPromptOptions(false)
+          setSelectedText('')
+          setSelectedPrompt('')
+          setSelectedType('')
         } else if (range && range.length === 0) {
-          setShowPromptOptions(false);
-          setSelectedPrompt('');
-          setSelectedText('');
-          setSelectedType('');
+          setShowPromptOptions(false)
+          setSelectedPrompt('')
+          setSelectedText('')
+          setSelectedType('')
         }
-      });
+      })
     }
-  }, [content, selectedType, selectedText, selectionRange]);
+  }, [content, selectedType, selectedText, selectionRange])
 
   // Listen for aiResult changes
   useEffect(() => {
@@ -386,43 +386,42 @@ const AiEditor: React.FC<AiEditorProps> = ({
 
   const handlePromptSelect = (prompt: string) => {
     if (previousSelectionRangeRef.current && quillRef.current) {
-      const { index, length } = previousSelectionRangeRef.current;
-      quillRef.current.formatText(index, length, { background: '' }); 
-      previousSelectionRangeRef.current = null; 
+      const { index, length } = previousSelectionRangeRef.current
+      quillRef.current.formatText(index, length, { background: '' })
+      previousSelectionRangeRef.current = null
     } else {
-      console.log('No highlight to clear');
-    }  
+      console.log('No highlight to clear')
+    }
 
-    setSelectedPrompt(prompt);
-    setIsLoading(true);
-    const promptContent = `${selectedType}: ${prompt}`;
-  
+    setSelectedPrompt(prompt)
+    setIsLoading(true)
+    const promptContent = `${selectedType}: ${prompt}`
+
     console.log('[handlePromptSelect]', {
       selectedType,
       prompt,
       promptContent
-    });
-  
+    })
+
     if (selectedType === 'Ask AI') {
-      setIsLoading(false);
+      setIsLoading(false)
     } else {
-      setIsLoading(true);
+      setIsLoading(true)
     }
-  
+
     if (quillRef.current && selectionRange) {
-      quillRef.current.setSelection(selectionRange.index, selectionRange.length);
+      quillRef.current.setSelection(selectionRange.index, selectionRange.length)
     }
-  
+
     onProcess({
       selectedContent: selectedText,
       selectedIndex,
       promptContent
-    });
-  
-    setShowAIResult(false);
-    setShowPromptOptions(false);
-  };
-  
+    })
+
+    setShowAIResult(false)
+    setShowPromptOptions(false)
+  }
 
   const handleConfirm = () => {
     if (quillRef.current && aiResult) {
@@ -461,36 +460,51 @@ const AiEditor: React.FC<AiEditorProps> = ({
     }
   }, [selectedType])
 
+  // useEffect(() => {
+  //   if (toolbarRef.current && toolbarPosition) {
+  //     toolbarRef.current.scrollIntoView({
+  //       behavior: 'smooth',
+  //       block: 'nearest'
+  //     })
+  //   }
+  // }, [toolbarPosition])
+
+  // useEffect(() => {
+  //   if (toolbarRef.current && toolbarPosition) {
+  //     const rect = toolbarRef.current.getBoundingClientRect();
+  //     if (rect.top < 0 || rect.bottom > window.innerHeight) {
+  //       toolbarRef.current.scrollIntoView({
+  //         behavior: 'smooth',
+  //         block: 'center'
+  //       });
+  //     }
+  //   }
+  // }, [toolbarPosition]);  
+
+  const previousSelectionRangeRef = useRef<RangeStatic | null>(null)
+
   useEffect(() => {
-    if (toolbarRef.current && toolbarPosition) {
-      toolbarRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest'
-      })
+    if (!quillRef.current) return
+
+    const quill = quillRef.current
+
+    if (content === '' && previousSelectionRangeRef.current) {
+      const { index, length } = previousSelectionRangeRef.current
+      quill.formatText(index, length, { background: '' })
+      previousSelectionRangeRef.current = null
+      return
     }
-  }, [toolbarPosition])
 
-  const previousSelectionRangeRef = useRef<RangeStatic | null>(null);
+    if (selectionRange && selectedType === 'Ask AI') {
+      quill.formatText(selectionRange.index, selectionRange.length, {
+        background: '#FFEB3B'
+      })
+      previousSelectionRangeRef.current = selectionRange
+    }
+  }, [selectionRange, selectedType])
 
-useEffect(() => {
-  if (!quillRef.current) return;
-
-  const quill = quillRef.current;
-
-  if (content === '' && previousSelectionRangeRef.current) {
-    const { index, length } = previousSelectionRangeRef.current;
-    quill.formatText(index, length, { background: '' });
-    previousSelectionRangeRef.current = null;
-    return; 
-  }
-
-  if (selectionRange && selectedType === 'Ask AI') {
-    quill.formatText(selectionRange.index, selectionRange.length, {
-      background: '#FFEB3B'
-    });
-    previousSelectionRangeRef.current = selectionRange;
-  }
-}, [selectionRange, selectedType]);
+  console.log("111", toolbarPosition?.top);
+  console.log("222", toolbarPosition?.left);
 
   return (
     <div className="w-full min-h-screen bg-white">
@@ -498,7 +512,7 @@ useEffect(() => {
         <div
           ref={editorRef}
           className="flex-1 min-h-[calc(100vh-100px)] w-full border border-gray-300 rounded-lg shadow-sm editor-wrapper !mt-10 ql-container ql-snow"
-          />
+        />
 
         {showPromptOptions && !showAIResult && toolbarPosition && (
           <div
@@ -615,7 +629,7 @@ useEffect(() => {
                         Generating suggestion...
                       </span>
                     </div>
-                  )} 
+                  )}
                 </div>
               )}
             </div>
