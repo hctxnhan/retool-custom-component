@@ -7,12 +7,10 @@
       "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
       "Courier New", monospace;
-    --color-red-500: oklch(63.7% 0.237 25.331);
     --color-red-600: oklch(57.7% 0.245 27.325);
+    --color-yellow-100: oklch(97.3% 0.071 103.193);
     --color-blue-50: oklch(97% 0.014 254.604);
     --color-blue-100: oklch(93.2% 0.032 255.585);
-    --color-blue-300: oklch(80.9% 0.105 251.813);
-    --color-blue-400: oklch(70.7% 0.165 254.624);
     --color-blue-500: oklch(62.3% 0.214 259.815);
     --color-blue-600: oklch(54.6% 0.245 262.881);
     --color-gray-50: oklch(98.5% 0.002 247.839);
@@ -292,6 +290,9 @@
   .mt-2 {
     margin-top: calc(var(--spacing) * 2);
   }
+  .mt-3 {
+    margin-top: calc(var(--spacing) * 3);
+  }
   .mt-4 {
     margin-top: calc(var(--spacing) * 4);
   }
@@ -426,6 +427,9 @@
   .max-w-\[500px\] {
     max-width: 500px;
   }
+  .max-w-\[520px\] {
+    max-width: 520px;
+  }
   .max-w-\[900px\] {
     max-width: 900px;
   }
@@ -437,6 +441,9 @@
   }
   .min-w-\[300px\] {
     min-width: 300px;
+  }
+  .min-w-\[320px\] {
+    min-width: 320px;
   }
   .min-w-\[400px\] {
     min-width: 400px;
@@ -515,9 +522,6 @@
   .justify-center {
     justify-content: center;
   }
-  .justify-start {
-    justify-content: flex-start;
-  }
   .gap-1 {
     gap: calc(var(--spacing) * 1);
   }
@@ -571,9 +575,6 @@
   .overflow-hidden {
     overflow: hidden;
   }
-  .overflow-x-auto {
-    overflow-x: auto;
-  }
   .overflow-x-hidden {
     overflow-x: hidden;
   }
@@ -624,12 +625,6 @@
     border-left-style: var(--tw-border-style);
     border-left-width: 1px;
   }
-  .border-blue-400 {
-    border-color: var(--color-blue-400);
-  }
-  .border-blue-500 {
-    border-color: var(--color-blue-500);
-  }
   .border-gray-200 {
     border-color: var(--color-gray-200);
   }
@@ -663,9 +658,6 @@
   .bg-blue-100 {
     background-color: var(--color-blue-100);
   }
-  .bg-blue-500 {
-    background-color: var(--color-blue-500);
-  }
   .bg-border {
     background-color: var(--border);
   }
@@ -674,9 +666,6 @@
   }
   .bg-gray-50 {
     background-color: var(--color-gray-50);
-  }
-  .bg-gray-100 {
-    background-color: var(--color-gray-100);
   }
   .bg-muted {
     background-color: var(--muted);
@@ -698,6 +687,9 @@
   }
   .bg-white {
     background-color: var(--color-white);
+  }
+  .bg-yellow-100 {
+    background-color: var(--color-yellow-100);
   }
   .fill-current {
     fill: currentcolor;
@@ -762,6 +754,9 @@
   .font-mono {
     font-family: var(--font-mono);
   }
+  .font-sans {
+    font-family: var(--font-sans);
+  }
   .text-sm {
     font-size: var(--text-sm);
     line-height: var(--tw-leading, var(--text-sm--line-height));
@@ -796,8 +791,8 @@
   .whitespace-nowrap {
     white-space: nowrap;
   }
-  .whitespace-pre-wrap {
-    white-space: pre-wrap;
+  .text-black {
+    color: var(--color-black);
   }
   .text-blue-600 {
     color: var(--color-blue-600);
@@ -807,6 +802,9 @@
   }
   .text-foreground {
     color: var(--foreground);
+  }
+  .text-gray-300 {
+    color: var(--color-gray-300);
   }
   .text-gray-400 {
     color: var(--color-gray-400);
@@ -840,9 +838,6 @@
   }
   .text-primary-foreground {
     color: var(--primary-foreground);
-  }
-  .text-red-500 {
-    color: var(--color-red-500);
   }
   .text-red-600 {
     color: var(--color-red-600);
@@ -922,6 +917,15 @@
     transition-property: all;
     transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
     transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+  .transition-colors {
+    transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+  .duration-200 {
+    --tw-duration: 200ms;
+    transition-duration: 200ms;
   }
   .duration-300 {
     --tw-duration: 300ms;
@@ -1014,24 +1018,10 @@
       --tw-ring-color: var(--primary);
     }
   }
-  .hover\:border-blue-300 {
-    &:hover {
-      @media (hover: hover) {
-        border-color: var(--color-blue-300);
-      }
-    }
-  }
   .hover\:bg-accent {
     &:hover {
       @media (hover: hover) {
         background-color: var(--accent);
-      }
-    }
-  }
-  .hover\:bg-blue-50 {
-    &:hover {
-      @media (hover: hover) {
-        background-color: var(--color-blue-50);
       }
     }
   }

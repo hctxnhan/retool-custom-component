@@ -262,47 +262,71 @@ export const AiEditorComponent: FC = () => {
             lastMessage={lastMessage}
             setLastMessage={setLastMessage}
             setSelectedTextPosition={setSelectedTextPosition}
-            messageHistory={messageHistory as Array<{ role: 'user' | 'assistant'; content: string }>}
+            messageHistory={
+              messageHistory as Array<{
+                role: 'user' | 'assistant'
+                content: string
+              }>
+            }
             setMessageHistory={setMessageHistory}
           />
         </div>
-  
+
         {/* Chat */}
         {selectedType === 'Ask AI' && (
-          <div
-            style={{
-              position: 'absolute',
-              top: typeof selectedTextPosition.top === 'number' ? selectedTextPosition.top + 50 : 50,
-              left: typeof selectedTextPosition.left === 'number' ? selectedTextPosition.left + 300 : 0,
-              zIndex: 999,
-              width: '500px', 
-              height: '100%',
-              boxSizing: 'border-box',
-              transition: 'all 0.3s ease' 
-            }}
-          >
-            <ExpandableChatDemo
-              lastMessage={lastMessage}
-              setLastMessage={setLastMessage}
-              _messageHistory={messageHistory as Array<{ role: 'user' | 'assistant'; content: string }>}
-              setMessageHistory={setMessageHistory}
-              placeholder={placeholder || 'Type your message...'}
-              lastResponse={lastResponse}
-              _setLastResponse={_setLastResponse}
-              avatarSrc={avatarSrc}
-              content={content}
-              onCloseChat={() => {
-                setSelectedType('')
-                setContent('')
-                setSelectedTextPosition({ visible: false })
+          <>
+            {/* Optional overlay
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                backgroundColor: 'rgba(0,0,0,0.3)',
+                zIndex: 998
               }}
-            />
-          </div>
+            /> */}
+            {/* Side panel */}
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                right: 0,
+                height: '100%',
+                width: '400px',
+                backgroundColor: 'white',
+                zIndex: 999,
+                boxShadow: '-2px 0 8px rgba(0,0,0,0.15)',
+                transition: 'transform 0.3s ease',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
+              <ExpandableChatDemo
+                lastMessage={lastMessage}
+                setLastMessage={setLastMessage}
+                _messageHistory={
+                  messageHistory as Array<{
+                    role: 'user' | 'assistant'
+                    content: string
+                  }>
+                }
+                setMessageHistory={setMessageHistory}
+                placeholder={placeholder || 'Type your message...'}
+                lastResponse={lastResponse}
+                _setLastResponse={_setLastResponse}
+                avatarSrc={avatarSrc}
+                content={content}
+                onCloseChat={() => {
+                  setSelectedType('')
+                  setContent('')
+                  setSelectedTextPosition({ visible: false })
+                }}
+              />
+            </div>
+          </>
         )}
       </div>
     </WrapperComponent>
   )
-  
 }
 
 const WrapperComponent = ({
