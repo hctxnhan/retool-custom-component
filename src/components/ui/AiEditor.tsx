@@ -136,9 +136,9 @@ const AiEditor: React.FC<AiEditorProps> = ({
       const maxTop = viewportHeight - toolbarHeight - padding
       const minTop = padding
       top = Math.max(minTop, Math.min(top, maxTop))
-      console.log('Toolbar:', top)
+      // console.log('Toolbar:', top)
 
-      console.log('ToolbarPosition set to:', { top, left })
+      // console.log('ToolbarPosition set to:', { top, left })
 
       setToolbarPosition({ top, left })
       setToolbarDirection(showAbove ? 'top' : 'bottom')
@@ -408,6 +408,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
 
     if (selectedType === 'Ask AI') {
       setIsLoading(false)
+      setShowPromptOptions(false)
     } else {
       setIsLoading(true)
     }
@@ -423,16 +424,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
     })
 
     setShowAIResult(false)
-    setShowPromptOptions(false)
   }
-  useEffect(() => {
-    console.log(
-      '[RENDER] showPromptOptions:',
-      showPromptOptions,
-      '| isLoading:',
-      isLoading
-    )
-  }, [showPromptOptions, isLoading])
 
   const handleConfirm = () => {
     if (quillRef.current && aiResult) {
@@ -505,8 +497,6 @@ const AiEditor: React.FC<AiEditorProps> = ({
 
         {showPromptOptions && !showAIResult && toolbarPosition && (
           <>
-            {/* {console.log("toolbarPosition", toolbarPosition)}
-           {console.log("isLoading", isLoading)} */}
             <div
               ref={toolbarRef}
               className="fixed z-50 bg-white border rounded-xl shadow-xl"
@@ -515,11 +505,6 @@ const AiEditor: React.FC<AiEditorProps> = ({
                 left: `${toolbarPosition.left}px`
               }}
             >
-              {isLoading && (
-                <div className="mt-2 bg-yellow-100 text-black px-4 py-2 rounded">
-                  LOADING...
-                </div>
-              )}
               <div className="p-2 w-max min-w-[320px] max-w-[520px] bg-white border border-gray-200 rounded-md shadow-sm font-sans text-sm">
                 {/* Type and prompt options */}
                 <div className="flex items-center flex-wrap gap-1 text-gray-600">
@@ -684,16 +669,18 @@ const AiEditor: React.FC<AiEditorProps> = ({
                 </div>
 
                 {/* Loading + Selected Prompt */}
-                {/* {selectedType && selectedType !== 'Ask AI' && (
-                <div className="mt-4 space-y-2">
-                  {isLoading && (
-                    <div className="flex items-center gap-2 mt-3 text-gray-500">
-                      <div className="w-4 h-4 border-2 border-t-blue-500 border-gray-300 rounded-full animate-spin" />
-                      <span className="text-sm">Generating suggestion...</span>
-                    </div>
-                  )}
-                </div>
-              )} */}
+                {selectedType && selectedType !== 'Ask AI' && (
+                  <div className="mt-4 space-y-2">
+                    {isLoading && (
+                      <div className="flex items-center gap-2 mt-3 text-gray-500">
+                        <div className="w-4 h-4 border-2 border-t-blue-500 border-gray-300 rounded-full animate-spin" />
+                        <span className="text-sm">
+                          Generating suggestion...
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </>
