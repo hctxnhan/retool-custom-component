@@ -85,15 +85,8 @@ const AiEditor: React.FC<AiEditorProps> = ({
 
   const [showPromptOptions, setShowPromptOptions] = useState(false)
   const [showAIResult, setShowAIResult] = useState(false)
-  const [showAIChatPanel, setShowAIChatPanel] = useState(false)
-  const [aiPrompt, setAIPrompt] = useState('')
-  const handleAskAI = () => {
-    if (selectedText) {
-      setAIPrompt(selectedText)
-      setShowAIChatPanel(true)
-      setShowPromptOptions(false) // Ẩn popup nếu đang hiện
-    }
-  }
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+
   const [isLoading, setIsLoading] = useState(false)
   const [toolbarPosition, setToolbarPosition] = useState<{
     top: number
@@ -440,6 +433,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
 
   const handleReject = () => {
     setShowAIResult(false)
+    setIsDropdownOpen(false)
   }
 
   const handleRegenerate = () => {
@@ -492,25 +486,30 @@ const AiEditor: React.FC<AiEditorProps> = ({
       <div className="space-y-6 w-full h-full p-4">
         <div
           ref={editorRef}
-          className="flex-1 min-h-[calc(100vh-100px)] w-full border border-gray-300 rounded-lg shadow-sm editor-wrapper !mt-10 ql-container ql-snow"
+          className="w-full flex-1 min-h-[calc(100vh-100px)] !mt-5 rounded-xl bg-white p-4 ql-container ql-snow !border-none !important"
         />
 
         {showPromptOptions && !showAIResult && toolbarPosition && (
-          <>
-            <div
-              ref={toolbarRef}
-              className="fixed z-50 bg-white border rounded-xl shadow-xl"
-              style={{
-                top: `${toolbarPosition.top}px`,
-                left: `${toolbarPosition.left}px`
-              }}
-            >
-              <div className="p-2 w-max min-w-[320px] max-w-[520px] bg-white border border-gray-200 rounded-md shadow-sm font-sans text-sm">
+          <div
+            ref={toolbarRef}
+            className="fixed z-50 bg-white border rounded-xl shadow-xl"
+            style={{
+              top: `${toolbarPosition.top}px`,
+              left: `${toolbarPosition.left}px`,
+              maxHeight: isDropdownOpen ? '600px' : '160px',
+              overflow: 'hidden'
+            }}
+          >
+            <div className="relative">
+              <div className="p-2 w-max min-w-[320px] max-w-[520px] !min-h-[50px] !max-h-[50px] bg-white border !border-primary rounded-md shadow-sm font-sans text-sm">
                 {/* Type and prompt options */}
                 <div className="flex items-center flex-wrap gap-1 text-gray-600">
                   {['Rewrite', 'Translate', 'Tone', 'Ask AI'].map(
                     (type, index, array) => (
-                      <DropdownMenu key={type}>
+                      <DropdownMenu
+                        key={type}
+                        onOpenChange={(open) => setIsDropdownOpen(open)}
+                      >
                         <DropdownMenuTrigger
                           asChild
                           onMouseDown={(e) => {
@@ -532,7 +531,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
                                 if (!isLoading) handleTypeSelect(type)
                               }}
                             >
-                              {/* Icon trước mỗi type */}
+                              {/* Icon type */}
                               {type === 'Rewrite' && (
                                 <svg
                                   aria-hidden="true"
@@ -629,6 +628,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
                               }}
                               onCloseAutoFocus={(e) => {
                                 e.preventDefault()
+                                setIsDropdownOpen(false)
                                 if (quillRef.current && selectionRange) {
                                   quillRef.current.setSelection(selectionRange)
                                 }
@@ -637,10 +637,6 @@ const AiEditor: React.FC<AiEditorProps> = ({
                               <div className="flex flex-col space-y-0.5 py-1">
                                 {configOptions[type].map((prompt) => {
                                   const isActive = selectedPrompt === prompt
-                                  const isDisabled =
-                                    isLoading &&
-                                    isActive &&
-                                    selectedType !== 'Ask AI'
                                   return (
                                     <DropdownMenuItem
                                       key={prompt}
@@ -653,7 +649,7 @@ const AiEditor: React.FC<AiEditorProps> = ({
                                         (selectedPrompt !== prompt ||
                                           selectedType !== type)
                                       }
-                                      className={`rounded-sm px-2 py-1.5 text-sm cursor-pointer max-h-48 overflow-y-auto ${
+                                      className={`rounded-sm px-2 py-1.5 text-sm cursor-pointer ${
                                         selectedPrompt === prompt
                                           ? 'bg-blue-50 text-blue-600'
                                           : ''
@@ -696,8 +692,14 @@ const AiEditor: React.FC<AiEditorProps> = ({
                   </div>
                 )}
               </div>
+
+              {isLoading && (
+                <div className="absolute inset-0 z-10 bg-white/60 flex items-center justify-center rounded-md">
+                  <div className="w-5 h-5 border-2 border-t-blue-500 border-gray-300 rounded-full animate-spin" />
+                </div>
+              )}
             </div>
-          </>
+          </div>
         )}
 
         {showAIResult && toolbarPosition && (
@@ -710,48 +712,48 @@ const AiEditor: React.FC<AiEditorProps> = ({
           >
             {/* Arrow tip pointing upward */}
             <div className="flex justify-center relative">
-              <div className="w-3 h-3 bg-black rotate-45 border-t border-l border-gray-300 absolute -top-1.5 z-[-1]" />
+              <div className="w-2.5 h-2.5 bg-white rotate-45 border-t border-l border-primary absolute -top-1.5 z-[-1]" />
             </div>
 
             {/* AI Suggestion content box */}
-            <div className="p-3 bg-white rounded-lg shadow-sm min-w-[400px] max-w-[900px] space-y-3 text-sm border border-gray-200">
-              <div className="font-semibold text-gray-900">AI Suggestion</div>
+            <div className="p-2 bg-white rounded-md shadow-sm min-w-[360px] max-w-[800px] space-y-2 text-sm border border-primary">
+              <div className="font-medium text-gray-900">AI Suggestion</div>
 
               {isLoading && selectedType !== 'Ask AI' ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-t-black border-gray-300 rounded-full animate-spin" />
-                  <span className="text-gray-600">Processing...</span>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className="w-3 h-3 border-2 border-t-black border-gray-300 rounded-full animate-spin" />
+                  <span>Processing...</span>
                 </div>
               ) : (
-                <div className="p-3 bg-gray-50 text-gray-700 font-mono break-words">
+                <div className="p-2 bg-gray-50 text-gray-800 rounded border border-gray-200 break-words">
                   {aiResult}
                 </div>
               )}
 
               {!isLoading && selectedType !== 'Ask AI' && (
-                <div className="flex items-center justify-center gap-4 pt-2">
+                <div className="flex items-center justify-center gap-3 pt-1 text-xs">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-gray-800 hover:bg-gray-100"
+                    className="text-gray-800 hover:bg-gray-100 px-2 py-1"
                     onClick={handleConfirm}
                   >
                     Accept
                   </Button>
-                  <span className="text-gray-500">|</span>
+                  <span className="text-gray-400">|</span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-red-600 hover:bg-gray-100"
+                    className="text-red-600 hover:bg-gray-100 px-2 py-1"
                     onClick={handleReject}
                   >
                     Discard
                   </Button>
-                  <span className="text-gray-500">|</span>
+                  <span className="text-gray-400">|</span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-gray-800 hover:bg-gray-100"
+                    className="text-gray-800 hover:bg-gray-100 px-2 py-1"
                     onClick={handleRegenerate}
                   >
                     Try again
