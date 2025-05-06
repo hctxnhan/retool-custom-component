@@ -514,7 +514,10 @@ const AiEditor: React.FC<AiEditorProps> = ({
                         <DropdownMenuTrigger
                           asChild
                           onMouseDown={(e) => {
-                            e.preventDefault()
+                            if (isLoading) {
+                              e.preventDefault()
+                              return
+                            }
                             handleTypeSelect(type)
                           }}
                         >
@@ -524,8 +527,10 @@ const AiEditor: React.FC<AiEditorProps> = ({
                                 selectedType === type
                                   ? 'bg-blue-100 text-blue-600 font-medium'
                                   : 'hover:bg-gray-100 cursor-pointer'
-                              }`}
-                              onClick={() => handleTypeSelect(type)}
+                              } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              onClick={() => {
+                                if (!isLoading) handleTypeSelect(type)
+                              }}
                             >
                               {/* Icon trước mỗi type */}
                               {type === 'Rewrite' && (
@@ -639,14 +644,23 @@ const AiEditor: React.FC<AiEditorProps> = ({
                                   return (
                                     <DropdownMenuItem
                                       key={prompt}
-                                      onClick={() => handlePromptSelect(prompt)}
-                                      disabled={isDisabled}
-                                      className={`rounded-sm px-2 py-1.5 text-sm cursor-pointer hover:bg-gray-100 max-h-48 overflow-y-auto ${
-                                        isActive
+                                      onClick={() => {
+                                        if (!isLoading)
+                                          handlePromptSelect(prompt)
+                                      }}
+                                      disabled={
+                                        isLoading &&
+                                        (selectedPrompt !== prompt ||
+                                          selectedType !== type)
+                                      }
+                                      className={`rounded-sm px-2 py-1.5 text-sm cursor-pointer max-h-48 overflow-y-auto ${
+                                        selectedPrompt === prompt
                                           ? 'bg-blue-50 text-blue-600'
                                           : ''
                                       } ${
-                                        isDisabled
+                                        isLoading &&
+                                        (selectedPrompt !== prompt ||
+                                          selectedType !== type)
                                           ? 'opacity-50 cursor-not-allowed'
                                           : ''
                                       }`}

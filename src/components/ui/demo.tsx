@@ -200,7 +200,7 @@ export const ExpandableChatDemo = ({
               <Button
                 type="submit"
                 size="sm"
-                className="ml-auto gap-1.5 rounded-full bg-primary text-white hover:bg-primary/90 transition px-4 py-2 !important"
+                className="mt-2 ml-auto gap-1.5 rounded-full bg-primary text-white hover:bg-primary/90 transition px-4 py-2 !important"
               >
                 Send
                 <CornerDownLeft className="size-4" />
