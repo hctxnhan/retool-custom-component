@@ -62,9 +62,11 @@ export const PropertyReview = memo(function PropertyReview({
   }
 
   return (
-    <div className="flex justify-between items-start px-2 py-2 border-b border-border">
-      <div className="text-sm font-medium text-foreground">{config.label}</div>
-      <div className="text-right text-sm max-w-[60%] break-words">
+   <div className="flex justify-between items-start px-2 py-2 border-b border-border">
+      <div className="text-sm font-medium text-foreground pr-10"   style={{
+      paddingRight: '15px',
+    }}>{config.label}</div>
+      <div className="text  text-right text-sm max-w-[60%] break-words">
         {renderFormattedValue(value, config)}
       </div>
     </div>
