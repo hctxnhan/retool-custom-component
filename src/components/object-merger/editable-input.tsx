@@ -1,6 +1,6 @@
 import React from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
-import { DatePicker } from '@/components/ui/date-picker'
+// import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -23,6 +23,8 @@ import { cn } from '@/lib/utils'
 import { AlertCircle, Tag, PlusCircle } from 'lucide-react'
 import { memo } from 'react'
 import MultipleSelector from '../ui/multiselect'
+import MultiSelect from '../ui/multiSelectOption'
+import  DatePicker  from '../ui/date-pickerOptional'
 
 interface EditableInputProps {
   config: PropertyConfig
@@ -47,7 +49,7 @@ export const EditableInput = memo(function EditableInput({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="absolute right-1 top-1">
+            <div className="absolute right-1 top-1 ">
               <AlertCircle className="h-3 w-3 text-primary" />
             </div>
           </TooltipTrigger>
@@ -137,7 +139,7 @@ export const EditableInput = memo(function EditableInput({
                   : {})}
               />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent >
               {config.options?.map((option) => (
                 <SelectItem
                   key={option.value.toString()}
@@ -218,77 +220,132 @@ export const EditableInput = memo(function EditableInput({
           {renderModifiedIndicator()}
         </div>
       )
-    case 'date':
+    // case 'date':
+    //   return (
+    //     <div className="relative z-50">
+    //       <DatePicker
+    //         date={value ? new Date(value) : undefined}
+    //         onDateChange={(date) => {
+    //           console.log('Date changed:', date)
+    //           onValueChange(
+    //             path,
+    //             date ? date.toISOString().split('T')[0] : null
+    //           )
+    //         }}
+    //         className={cn(
+    //           'transition-all duration-200',
+    //           isModified && 'border-primary/30'
+    //         )}
+    //       />
+    //       {renderModifiedIndicator()}
+    //     </div>
+    //   )
+    // case 'multiselect':
+    //   return (
+    //     <div className="relative">
+    //       <MultipleSelector
+    //         placeholder="Select options..."
+    //         options={config.options?.map((option) => ({
+    //           value: option.value.toString(),
+    //           label: option.label
+    //         }))}
+    //         value={
+    //           Array.isArray(value)
+    //             ? value.map((v) => {
+    //                 const option = config.options?.find(
+    //                   (opt) => opt.value === v
+    //                 )
+    //                 return {
+    //                   value: v.toString(),
+    //                   label: option ? option.label : v.toString(),
+    //                   isCustom: !option && config.allowCustom
+    //                 }
+    //               })
+    //             : []
+    //         }
+    //         onChange={(selectedOptions) => {
+    //           const newValue = selectedOptions.map((opt) => opt.value)
+    //           onValueChange(path, newValue)
+    //         }}
+    //         className={cn(
+    //           'transition-all duration-200 ',
+    //           isModified && 'border-primary/30',
+              
+    //         )}
+    //         allowCustom={config.allowCustom}
+    //         onCreateOption={(inputValue) => {
+    //           // Add the custom value to the existing selections
+    //           if (inputValue.trim() !== '') {
+    //             const newValue = Array.isArray(value)
+    //               ? [...value, inputValue]
+    //               : [inputValue]
+    //             onValueChange(path, newValue)
+    //             return {
+    //               value: inputValue,
+    //               label: inputValue,
+    //               isCustom: true
+    //             }
+    //           }
+    //           return null
+    //         }}
+    //       />
+    //       {renderModifiedIndicator()}
+    //     </div>
+    //   )
+  case 'date':
+    return (
+      <div className="relative z-50">
+        <DatePicker
+          date={value ? new Date(value) : undefined}
+          onDateChange={(date) => {
+            console.log('Date changed:', date)
+            onValueChange(
+              path,
+              date ? date.toISOString().split('T')[0] : null
+            )
+          }}
+          className={cn(
+            'transition-all duration-200',
+            isModified && 'border-primary/30'
+          )}
+        />
+        {renderModifiedIndicator()}
+      </div>
+    )
+   
+  case 'multiselect':
       return (
         <div className="relative">
-          <DatePicker
-            date={value ? new Date(value) : undefined}
-            onDateChange={(date) => {
-              console.log('Date changed:', date)
-              onValueChange(
-                path,
-                date ? date.toISOString().split('T')[0] : null
-              )
-            }}
-            className={cn(
-              'transition-all duration-200',
-              isModified && 'border-primary/30'
-            )}
-          />
-          {renderModifiedIndicator()}
-        </div>
-      )
-    case 'multiselect':
-      return (
-        <div className="relative">
-          <MultipleSelector
+          <MultiSelect
             placeholder="Select options..."
             options={config.options?.map((option) => ({
               value: option.value.toString(),
-              label: option.label
+              label: option.label,
             }))}
             value={
               Array.isArray(value)
                 ? value.map((v) => {
-                    const option = config.options?.find(
-                      (opt) => opt.value === v
-                    )
+                    const option = config.options?.find((opt) => opt.value === v);
                     return {
                       value: v.toString(),
                       label: option ? option.label : v.toString(),
-                      isCustom: !option && config.allowCustom
-                    }
+                    };
                   })
                 : []
             }
             onChange={(selectedOptions) => {
-              const newValue = selectedOptions.map((opt) => opt.value)
-              onValueChange(path, newValue)
+              const newValue = selectedOptions.map((opt) => opt.value);
+              onValueChange(path, newValue);
             }}
             className={cn(
               'transition-all duration-200',
               isModified && 'border-primary/30'
             )}
             allowCustom={config.allowCustom}
-            onCreateOption={(inputValue) => {
-              // Add the custom value to the existing selections
-              if (inputValue.trim() !== '') {
-                const newValue = Array.isArray(value)
-                  ? [...value, inputValue]
-                  : [inputValue]
-                onValueChange(path, newValue)
-                return {
-                  value: inputValue,
-                  label: inputValue,
-                  isCustom: true
-                }
-              }
-              return null
-            }}
           />
           {renderModifiedIndicator()}
         </div>
-      )
+      );
     case 'object':
       return (
         <div className="text-muted-foreground italic flex items-center justify-between">

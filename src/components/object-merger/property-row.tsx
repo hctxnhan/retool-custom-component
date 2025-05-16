@@ -116,7 +116,7 @@ export const PropertyRow = memo(function PropertyRow({
           'p-1',
           isModified && 'modified-value',
           isObjectProperty && 'bg-muted/5',
-          isPinned && 'pinned-column'
+          isPinned && 'pinned-column z-10'
         )}
       >
         <EditableInput
