@@ -26,7 +26,7 @@ interface MultiSelectProps {
 }
 
 const MultiSelect: React.FC<MultiSelectProps> = ({
-  options,
+  options =[],
   value = [],
   onChange,
   placeholder = 'Select...',
@@ -44,7 +44,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
 
   const handleSelect = (option: Option) => {
     if (selected.find((s) => s.value === option.value)) {
-      const updated = selected.filter((s) => s.value !== option.value)
+      const updated = selected?.filter((s) => s.value !== option.value)
       setSelected(updated)
       onChange?.(updated)
     } else {
@@ -67,11 +67,17 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     setInputValue('')
   }
 
-  const filteredOptions = options.filter(
-    (opt) =>
-      opt.label.toLowerCase().includes(inputValue.toLowerCase()) &&
-      !selected.find((s) => s.value === opt.value)
-  )
+  // const filteredOptions = options.filter(
+  //   (opt) =>
+  //     opt?.label?.toLowerCase().includes(inputValue.toLowerCase()) &&
+  //     !selected.find((s) => s.value === opt.value)
+  // )
+    const filteredOptions = options.filter(
+      (opt) =>
+        typeof opt.label === 'string' &&
+        opt.label.toLowerCase().includes(inputValue.toLowerCase()) &&
+        !selected.find((s) => s.value === opt.value)
+    )
 
   const canCreate =
     inputValue.trim() !== '' &&
@@ -115,7 +121,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
           </div>
         </PopoverTrigger>
 
-        <PopoverContent className="w-[300px] p-2">
+        <PopoverContent className="w-[300px]  p-2">
           <Input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
@@ -128,12 +134,12 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
               }
             }}
           />
-          <div className="max-h-[200px] overflow-auto flex flex-col gap-1">
+          <div className=" h-12 overflow-auto flex flex-col gap-1" style={{ maxHeight: '200px' }}>
             {filteredOptions.map((opt) => (
               <button
                 key={opt.value}
                 disabled={opt.disabled}
-                className="flex justify-between px-2 py-1 text-left hover:bg-gray-100 rounded"
+                className="flex justify-between px-2 py-1 text-left hover:bg-primary/90 rounded"
                 onClick={() => handleSelect(opt)}
               >
                 <span>{opt.label}</span>

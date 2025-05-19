@@ -294,7 +294,7 @@ export const EditableInput = memo(function EditableInput({
     //   )
   case 'date':
     return (
-      <div className="relative z-50">
+      <div className="relative ">
         <DatePicker
           date={value ? new Date(value) : undefined}
           onDateChange={(date) => {

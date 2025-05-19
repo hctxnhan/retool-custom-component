@@ -70,10 +70,11 @@ export const PropertyRow = memo(function PropertyRow({
       {objects.map((obj, index) => {
         const cellValue = getNestedValue(obj, path)
         const isSelected = selectedValues[path]?.sourceIndex === index
-        const mergedValue = getNestedValue(directEditValues, path)
+        const mergedValue = getNestedValue(directEditValues, path) ??[]
         const shouldDim = !isSelected && mergedValue === cellValue
         let highlightItems: string[] = []
-
+       
+      
         if (!isSelected && config.type === 'multiselect' && Array.isArray(cellValue) && Array.isArray(mergedValue)) {
           highlightItems = cellValue.filter((item) => !mergedValue.includes(item))
         }
