@@ -36,8 +36,10 @@ export const ReviewPanel = memo(function ReviewPanel({
 }: ReviewPanelProps) {
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
-  const jsonString = JSON.stringify(unflattenObject(directEditValues), null, 2)
-
+  // const jsonString = JSON.stringify(unflattenObject(directEditValues), null, 2)
+  const jsonString = JSON.stringify(directEditValues, null, 2)
+  console.log('jsonString', jsonString)
+  console.log('directEditValues', directEditValues)
   // Handle keyboard shortcuts
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

@@ -338,8 +338,10 @@ export default function ObjectMerger({
   // Handle completing the merge
   const handleMergeComplete = useCallback(() => {
     if (onMergeComplete) {
-      const unflattenedResult = unflattenObject(directEditValues)
-      onMergeComplete(unflattenedResult)
+      // const unflattenedResult = unflattenObject(directEditValues)
+      const result =directEditValues
+      // onMergeComplete(unflattenedResult)
+      onMergeComplete(result)
     }
     setIsReviewOpen(false)
   }, [directEditValues, onMergeComplete])
