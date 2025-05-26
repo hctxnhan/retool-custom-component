@@ -24,7 +24,7 @@ import { AlertCircle, Tag, PlusCircle } from 'lucide-react'
 import { memo } from 'react'
 import MultipleSelector from '../ui/multiselect'
 import MultiSelect from '../ui/multiSelectOption'
-import  DatePicker  from '../ui/date-pickerOptional'
+import DatePicker from '../ui/date-pickerOptional'
 
 interface EditableInputProps {
   config: PropertyConfig
@@ -126,12 +126,13 @@ export const EditableInput = memo(function EditableInput({
                 // If value doesn't match any option, show it as custom value
                 {...(value &&
                 !config.options?.some(
-                  (opt) => opt.value.toString() === value.toString()
+                  // (opt) => opt.value.toString() === value.toString()
+                  (opt) => opt.value?.toString?.() === value?.toString?.()
                 )
                   ? {
                       children: (
                         <span className="flex items-center gap-1.5">
-                          {value.toString()}
+                          {value?.toString()}
                           <Tag className="h-3 w-3 text-primary/70" />
                         </span>
                       )
@@ -139,13 +140,13 @@ export const EditableInput = memo(function EditableInput({
                   : {})}
               />
             </SelectTrigger>
-            <SelectContent >
+            <SelectContent>
               {config.options?.map((option) => (
                 <SelectItem
-                  key={option.value.toString()}
-                  value={option.value.toString()}
+                  key={option.value === null ? 'null' : String(option.value)}
+                  value={option.value === null ? 'null' : String(option.value)}
                 >
-                  {option.label}
+                  {option.label || 'None'}
                 </SelectItem>
               ))}
               {/* Custom value input */}
@@ -270,7 +271,7 @@ export const EditableInput = memo(function EditableInput({
     //         className={cn(
     //           'transition-all duration-200 ',
     //           isModified && 'border-primary/30',
-              
+
     //         )}
     //         allowCustom={config.allowCustom}
     //         onCreateOption={(inputValue) => {
@@ -292,50 +293,52 @@ export const EditableInput = memo(function EditableInput({
     //       {renderModifiedIndicator()}
     //     </div>
     //   )
-  case 'date':
-    return (
-      <div className="relative ">
-        <DatePicker
-          date={value ? new Date(value) : undefined}
-          onDateChange={(date) => {
-            console.log('Date changed:', date)
-            onValueChange(
-              path,
-              date ? date.toISOString().split('T')[0] : null
-            )
-          }}
-          className={cn(
-            'transition-all duration-200',
-            isModified && 'border-primary/30'
-          )}
-        />
-        {renderModifiedIndicator()}
-      </div>
-    )
-   
-  case 'multiselect':
+    case 'date':
+      return (
+        <div className="relative ">
+          <DatePicker
+            date={value ? new Date(value) : undefined}
+            onDateChange={(date) => {
+              console.log('Date changed:', date)
+              onValueChange(
+                path,
+                date ? date.toISOString().split('T')[0] : null
+              )
+            }}
+            className={cn(
+              'transition-all duration-200',
+              isModified && 'border-primary/30'
+            )}
+          />
+          {renderModifiedIndicator()}
+        </div>
+      )
+
+    case 'multiselect':
       return (
         <div className="relative">
           <MultiSelect
             placeholder="Select options..."
             options={config.options?.map((option) => ({
               value: option.value.toString(),
-              label: option.label,
+              label: option.label
             }))}
             value={
               Array.isArray(value)
                 ? value.map((v) => {
-                    const option = config.options?.find((opt) => opt.value === v);
+                    const option = config.options?.find(
+                      (opt) => opt.value === v
+                    )
                     return {
                       value: v.toString(),
-                      label: option ? option.label : v.toString(),
-                    };
+                      label: option ? option.label : v.toString()
+                    }
                   })
                 : []
             }
             onChange={(selectedOptions) => {
-              const newValue = selectedOptions.map((opt) => opt.value);
-              onValueChange(path, newValue);
+              const newValue = selectedOptions.map((opt) => opt.value)
+              onValueChange(path, newValue)
             }}
             className={cn(
               'transition-all duration-200',
@@ -345,7 +348,7 @@ export const EditableInput = memo(function EditableInput({
           />
           {renderModifiedIndicator()}
         </div>
-      );
+      )
     case 'object':
       return (
         <div className="text-muted-foreground italic flex items-center justify-between">
